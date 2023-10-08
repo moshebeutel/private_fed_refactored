@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "private-federated"
+version = "0.1.0"
+description = "Implementation of differentially private federated learning"
+authors = ["Moshe Beutel <moshebeutel@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = {version=">=2.0.0, !=2.0.1"}
+torchvision = {version="^0.15.0+cu118"}
+matplotlib = "^3.7.2"
+tqdm = "^4.66.1"
+wandb = "^0.15.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
