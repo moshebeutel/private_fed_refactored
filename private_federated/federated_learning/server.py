@@ -9,7 +9,7 @@ from private_federated.train.utils import init_net_grads, get_net_grads, evaluat
 
 
 class Server:
-    NUM_ROUNDS = 1000
+    NUM_ROUNDS = 300
     NUM_CLIENT_AGG: int = 50
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
@@ -34,13 +34,16 @@ class Server:
 
     def federated_learn(self):
         pbar = tqdm(range(Server.NUM_ROUNDS))
+        best_val_acc = 0.0
         for i in pbar:
             acc, loss = self.federated_round()
-            pbar.set_description(f'Round {i} finished. Acc {acc}, loss {loss}')
-            wandb.log({'val_acc': acc, 'val_loss': loss})
+            best_val_acc = max(best_val_acc, acc)
+            pbar.set_description(f'Round {i} finished. Acc {acc} ({best_val_acc} best till now), loss {loss}')
+            wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc})
 
         acc, loss = self.eval_net(loader=self._test_loader)
         print(f'test loss {loss} acc {acc}')
+        wandb.log({'test_acc': acc, 'test_loss': loss, 'best_epoch_validation_acc': best_val_acc})
 
     def federated_round(self):
         self.sample_clients()
