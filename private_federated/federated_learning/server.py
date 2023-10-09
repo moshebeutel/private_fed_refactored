@@ -1,9 +1,9 @@
 import random
 from copy import copy
 import torch.nn
+import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 from private_federated.federated_learning.client import Client
 from private_federated.train.utils import init_net_grads, get_net_grads, evaluate
 
@@ -37,6 +37,7 @@ class Server:
         for i in pbar:
             acc, loss = self.federated_round()
             pbar.set_description(f'Round {i} finished. Acc {acc}, loss {loss}')
+            wandb.log({'val_acc': acc, 'val_loss': loss})
 
         acc, loss = self.eval_net(loader=self._test_loader)
         print(f'test loss {loss} acc {acc}')
