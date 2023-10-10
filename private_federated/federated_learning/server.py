@@ -1,5 +1,6 @@
 import random
 from copy import copy
+from typing import Callable
 import torch.nn
 import wandb
 from torch.utils.data import DataLoader
@@ -9,14 +10,15 @@ from private_federated.train.utils import init_net_grads, get_net_grads, evaluat
 
 
 class Server:
-    NUM_ROUNDS = 300
+    NUM_ROUNDS = 100
     NUM_CLIENT_AGG: int = 50
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
 
-    def __init__(self, clients: list[Client], net: torch.nn.Module, val_loader: DataLoader, test_loader: DataLoader):
+    def __init__(self, clients: list[Client], net: torch.nn.Module, val_loader: DataLoader, test_loader: DataLoader,
+                 aggregating_strategy: Callable[[torch.tensor], torch.tensor]):
         self._clients: list[Client] = clients
         init_net_grads(net)
         self._grads: {str: torch.tensor} = get_net_grads(net)
@@ -31,8 +33,11 @@ class Server:
         self._criterion = torch.nn.CrossEntropyLoss()
         self._val_loader: DataLoader = val_loader
         self._test_loader: DataLoader = test_loader
+        self._aggregating_strategy = aggregating_strategy
 
     def federated_learn(self):
+        wandb.init(project="emg_gp_moshe", entity="emg_diff_priv", name='federated simple')
+
         pbar = tqdm(range(Server.NUM_ROUNDS))
         best_val_acc = 0.0
         for i in pbar:
@@ -63,12 +68,10 @@ class Server:
             c.train(net=net_copy_for_client)
 
     def aggregate_grads(self):
-        num_clients = len(self._sampled_clients)
-        for c in self._sampled_clients:
-            client_grads = c.grads
-            for k in self._grads.keys():
-                self._grads[k] += (client_grads[k] / float(num_clients))
-            del client_grads
+        for k in self._grads.keys():
+            grad_batch = torch.stack([c.grads[k] for c in self._sampled_clients])
+            self._grads[k] = self._aggregating_strategy(grad_batch)
+            del grad_batch
 
     def update_net(self):
         self._optimizer.zero_grad(set_to_none=False)
