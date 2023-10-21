@@ -12,6 +12,7 @@ torchvision = {version="^0.15.0+cu118"}
 matplotlib = "^3.7.2"
 tqdm = "^4.66.1"
 wandb = "^0.15.9"
+dp-accounting = "^0.4.3"
 
 [build-system]
 requires = ["poetry-core"]
