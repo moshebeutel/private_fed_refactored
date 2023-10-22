@@ -22,6 +22,10 @@ def populate_args(args):
     Server.MOMENTUM = args.momentum
 
 
+def split_to_floats(inp: str) -> list[float]:
+    lstrings = inp.split(sep=',')
+    return [float(entry) for entry in lstrings]
+
 def get_command_line_arguments(parser):
     """
     Parse command-line arguments.
@@ -75,5 +79,8 @@ def get_command_line_arguments(parser):
 
     parser.add_argument("--saved-models-path", type=str, default='./saved_models',
                         help='Train model in a federated_learning manner before fine tuning')
+
+    parser.add_argument('--epsilon', type=float, default=1.0)
+    parser.add_argument('--epsilon-values', type=str)
     args = parser.parse_args()
     return args

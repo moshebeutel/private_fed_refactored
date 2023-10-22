@@ -1,3 +1,5 @@
+from clustering.clustering_params import DifferentialPrivacyParam, PrivacyCalculatorMultiplier
+from clustering.privacy_calculator import PrivacyCalculator
 from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.data.dataset_factory import DatasetFactory
@@ -24,27 +26,34 @@ def build_all(args):
     # avg_agg_strategy = AverageStrategy()
     # avg_agg_strategy = AverageClipStrategy(clip_value=0.01)
 
-    import csv
-    s = 'q,T,desired_eps,delta,rgp,sigma,calculated_epsilon'
-    with open('sigmas.csv', 'w', newline='') as csvfile:
-        fieldnames = ['q', 'T', 'desired_eps', 'delta', 'rgp', 'sigma', 'calculated_epsilon']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for rgp in [False, True]:
-            for desired_eps in [1, 3, 8]:
-                for num_rounds in [1, 100, 300, 1000]:
-                    for sampling_prob in [0.02, 0.1, 0.2, 150.0 / 500.0, 1.0]:
-                        for delta in [1e-5, 1e-4, 1e-3]:
-                            sigma, calculated_epsilon = get_sigma(q=sampling_prob, T=num_rounds, eps=desired_eps,
-                                                                  delta=delta, rgp=rgp)
-                            s += f'\n{sampling_prob},{num_rounds},{desired_eps},{delta},{rgp},{sigma},{calculated_epsilon}'
-                            writer.writerow({'q': sampling_prob, 'T': num_rounds, 'desired_eps':desired_eps, 'delta': delta, 'rgp': rgp, 'sigma': sigma, 'calculated_epsilon': calculated_epsilon})
+    # import csv
+    # s = 'q,T,desired_eps,delta,rgp,sigma,calculated_epsilon'
+    # with open('sigmas.csv', 'w', newline='') as csvfile:
+    #     fieldnames = ['q', 'T', 'desired_eps', 'delta', 'rgp', 'sigma', 'calculated_epsilon']
+    #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    #     writer.writeheader()
+    #     for rgp in [False, True]:
+    #         for desired_eps in [1, 3, 8]:
+    #             for num_rounds in [1, 100, 300, 1000]:
+    #                 for sampling_prob in [0.02, 0.1, 0.2, 150.0 / 500.0, 1.0]:
+    #                     for delta in [1e-5, 1e-4, 1e-3]:
+    #                         sigma, calculated_epsilon = get_sigma(q=sampling_prob, T=num_rounds, eps=desired_eps,
+    #                                                               delta=delta, rgp=rgp)
+    #                         s += f'\n{sampling_prob},{num_rounds},{desired_eps},{delta},{rgp},{sigma},{calculated_epsilon}'
+    #                         writer.writerow({'q': sampling_prob, 'T': num_rounds, 'desired_eps':desired_eps, 'delta': delta, 'rgp': rgp, 'sigma': sigma, 'calculated_epsilon': calculated_epsilon})
+    #
+    # print(s)
 
-    print(s)
+    # raise Exception
 
-    raise Exception
+    privacy_calculator = PrivacyCalculator(privacy_param=DifferentialPrivacyParam(epsilon=args.epsilon,
+                                                                                  delta=1e-5), radius=0.0001,
+                                           max_depth=10, multipliers=PrivacyCalculatorMultiplier())
 
-    avg_agg_strategy = DpSgdAggregationStrategy(clip_value=0.0001, sigma=3.776479532659047)
+
+    # avg_agg_strategy = DpSgdAggregationStrategy(clip_value=0.0001, sigma=3.776479532659047)
+
+    avg_agg_strategy = DpSgdAggregationStrategy(dp_claculator=privacy_calculator)
     server = Server(clients=clients_factory.clients, net=net,
                     val_loader=server_val_loader, test_loader=server_test_loader,
                     aggregating_strategy=avg_agg_strategy)

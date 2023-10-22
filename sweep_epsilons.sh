@@ -1,0 +1,1 @@
+poetry run python app/federated_learning_sweep.py --epsilon-values 1,3,8
