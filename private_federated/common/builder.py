@@ -15,11 +15,12 @@ def get_aggregation_strategy(args):
         C = args.clip
         assert C > 0.0, f'Expected positive clip value. Got {C}'
         if args.noise_multiplier > 0.0:
-            strategy = DpSgdAggregationStrategy(clip_value=C, sigma=C * args.noise_multiplier)
+            strategy = DpSgdAggregationStrategy(clip_value=C, noise_multiplier=args.noise_multiplier)
         else:
             strategy = AverageClipStrategy(clip_value=C)
     else:
-        assert args.noise_multiplier == 0.0, f'No clip given. Expected non-private but got noise multiplier {args.noise_multiplier}'
+        assert args.noise_multiplier == 0.0, (f'No clip given. '
+                                              f'Expected non-private but got noise multiplier {args.noise_multiplier}')
         strategy = AverageStrategy()
     assert strategy is not None, 'Some unexpected logic path'
     return strategy
