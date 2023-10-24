@@ -29,9 +29,10 @@ def sweep_train(sweep_id, args, config=None):
         # args.num_rounds = config.num_rounds
         # args.num_clients_agg = config.num_clients_agg
         # args.learning_rate = config.learning_rate
-
-        args.epsilon = config.epsilon
-
+        args.noise_multiplier = config.noise_multiplier
+        args.clip = 0.0001
+        # args.epsilon = config.epsilon
+        wandb.run.name = f'noise multiplier {args.noise_multiplier} clip {args.clip}'
         single_train(args)
 
 
@@ -55,6 +56,10 @@ def run_sweep(args):
     #     })
 
     parameters_dict.update({
+        'noise_multiplier': {
+            'values': [874.16, 107.45935, 12.79182, 4.72193, 2.01643]
+            # suited for 100 rounds of epsilons: 0.01,0.1,1.0,3.0,8.0
+        },
         # 'learning_rate': {
         #     'values': [0.00001, 0.0001, 0.001, 0.01, 0.1]
         # },
