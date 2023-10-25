@@ -22,6 +22,10 @@ def populate_args(args):
     Server.MOMENTUM = args.momentum
 
 
+def split_to_floats(inp: str) -> list[float]:
+    lstrings = inp.split(sep=',')
+    return [float(entry) for entry in lstrings]
+
 def get_command_line_arguments(parser):
     """
     Parse command-line arguments.
@@ -61,19 +65,19 @@ def get_command_line_arguments(parser):
     parser.add_argument("--model-name", type=str, choices=get_model_hub_names(), default='resnet20',
                         help='network model name (resnet20 ...)')
 
-    parser.add_argument("--load-from", type=str,
-                        default='',
-                        help='Load a pretrained model from given path. Train from scratch if string empty')
-
-    parser.add_argument("--preform-pretrain",
-                        type=bool,
-                        default=True,
-                        help='Train model in a federated_learning manner before fine tuning')
-
     parser.add_argument("--use-cuda", type=bool, default=True,
                         help='Use GPU. Use cpu if not')
 
+    parser.add_argument("--clip", type=float, default=float('inf'),
+                        help='Gradients clip value. If inf - no clip')
+
+    parser.add_argument("--noise-multiplier", type=float, default=0.0, help='ratio  (DP noise ratio) / sensitivity.'
+                                                                            ' 0.0 for non-private mechanisms.')
+
     parser.add_argument("--saved-models-path", type=str, default='./saved_models',
                         help='Train model in a federated_learning manner before fine tuning')
+
+    parser.add_argument('--epsilon', type=float, default=1.0)
+    parser.add_argument('--epsilon-values', type=str, default='1')
     args = parser.parse_args()
     return args

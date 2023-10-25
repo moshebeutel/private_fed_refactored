@@ -40,11 +40,15 @@ class Server:
 
         pbar = tqdm(range(Server.NUM_ROUNDS))
         best_val_acc = 0.0
+        best_round = 0
         for i in pbar:
             acc, loss = self.federated_round()
+            best_round = i if best_val_acc < acc else best_round
             best_val_acc = max(best_val_acc, acc)
-            pbar.set_description(f'Round {i} finished. Acc {acc} ({best_val_acc} best till now), loss {loss}')
-            wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc})
+            pbar.set_description(f'Round {i} finished. Acc {acc} ({best_val_acc} best acc till now,'
+                                 f' best round {best_round}), loss {loss}')
+            wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc,
+                       'best_round': best_round})
 
         acc, loss = self.eval_net(loader=self._test_loader)
         print(f'test loss {loss} acc {acc}')
