@@ -9,6 +9,10 @@ from private_federated.federated_learning.server import Server
 from private_federated.models import model_factory
 
 
+# def create_gep_strategy():
+#     GepNoResidualAggregationStrategy(GEP(num_bases, batch_size, clip0, clip1))
+
+
 def get_aggregation_strategy(args):
     strategy = None
     if args.clip < float('inf'):
