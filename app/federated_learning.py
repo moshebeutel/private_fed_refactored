@@ -8,3 +8,5 @@ def main(args):
     private_federated.common.utils.populate_args(args)
     federated_learning_server = builder.build_all(args)
     federated_learning_server.federated_learn()
+
+

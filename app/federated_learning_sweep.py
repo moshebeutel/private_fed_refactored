@@ -1,8 +1,14 @@
+import argparse
+
 import wandb
 from functools import partial
+
+
 import private_federated.common
+from private_federated import common
 from private_federated.common import utils
 from private_federated.common import builder
+from private_federated.common.utils import split_to_floats
 
 
 def single_train(args):
@@ -17,13 +23,16 @@ def sweep_train(sweep_id, args, config=None):
         config.update({'sweep_id': sweep_id})
         print(config)
 
-        args.classes_per_user = config.classes_per_user
+        # args.classes_per_user = config.classes_per_user
         # args.batch_size = config.batch_size
         # args.clients_internal_epochs = config.clients_internal_epochs
         # args.num_rounds = config.num_rounds
         # args.num_clients_agg = config.num_clients_agg
-        args.learning_rate = config.learning_rate
-
+        # args.learning_rate = config.learning_rate
+        args.noise_multiplier = config.noise_multiplier
+        args.clip = 0.0001
+        # args.epsilon = config.epsilon
+        wandb.run.name = f'noise multiplier {args.noise_multiplier} clip {args.clip}'
         single_train(args)
 
 
@@ -47,9 +56,13 @@ def run_sweep(args):
     #     })
 
     parameters_dict.update({
-        'learning_rate': {
-            'values': [0.00001, 0.0001, 0.001, 0.01, 0.1]
+        'noise_multiplier': {
+            'values': [874.16, 107.45935, 12.79182, 4.72193, 2.01643]
+            # suited for 100 rounds of epsilons: 0.01,0.1,1.0,3.0,8.0
         },
+        # 'learning_rate': {
+        #     'values': [0.00001, 0.0001, 0.001, 0.01, 0.1]
+        # },
         # 'batch_size': {
         #     'values': [128, 256, 512]
         # },
@@ -100,11 +113,11 @@ def run_sweep(args):
         # 'hidden_dim': {
         #     'values': [15, 25, 30]
         # },
-        'classes_per_user': {
-            # 'values': [2, 6, 10]
-            'values': [2, 6, 10]
-            # 'values': [2, 6, 10]
-        },
+        # 'classes_per_user': {
+        #     # 'values': [2, 6, 10]
+        #     'values': [2, 6, 10]
+        #     # 'values': [2, 6, 10]
+        # },
         # 'clients_internal_epochs': {
         #     'values': [1, 5]
         # },
@@ -124,6 +137,15 @@ def run_sweep(args):
         # }
     })
 
+    parameters_dict.update({'epsilon': {'values': split_to_floats(args.epsilon_values)}})
+
     sweep_id = wandb.sweep(sweep_config, project="pytorch-sweeps-demo")
 
     wandb.agent(sweep_id, partial(sweep_train, sweep_id=sweep_id, args=args))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
+    args = common.utils.get_command_line_arguments(parser)
+    run_sweep(args)
+
