@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-from private_federated.data.utils import gen_random_loaders
+from private_federated.data.random_data_split import gen_random_loaders
 
 
 class DataLoadersGenerator:
@@ -28,3 +28,5 @@ class DataLoadersGenerator:
     @property
     def users_class_partitions(self):
         return self._users_class_partitions
+
+

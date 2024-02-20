@@ -1,13 +1,11 @@
+"""
+Taken 'as it is' from https://github.com/AvivSham/pFedHN.git
+"""
 from collections import defaultdict
 import random
-
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-
-
-def create_loader_from_dataset(dataset: Dataset, **params):
-    return torch.utils.data.DataLoader(dataset=dataset, **params)
 
 
 def get_num_classes_samples(dataset):
