@@ -1,8 +1,9 @@
+import torch
+from torch.utils.data import Dataset
 from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
-from private_federated.data.utils import create_loader_from_dataset
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.federated_learning.server import Server
@@ -48,3 +49,7 @@ def build_all(args):
                     val_loader=server_val_loader, test_loader=server_test_loader,
                     aggregating_strategy=strategy)
     return server
+
+
+def create_loader_from_dataset(dataset: Dataset, **params):
+    return torch.utils.data.DataLoader(dataset=dataset, **params)

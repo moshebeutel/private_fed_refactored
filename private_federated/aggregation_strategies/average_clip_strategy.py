@@ -1,5 +1,4 @@
 import torch
-
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 
 

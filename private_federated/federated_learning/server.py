@@ -17,7 +17,10 @@ class Server:
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
 
-    def __init__(self, clients: list[Client], net: torch.nn.Module, val_loader: DataLoader, test_loader: DataLoader,
+    def __init__(self, clients: list[Client],
+                 net: torch.nn.Module,
+                 val_loader: DataLoader,
+                 test_loader: DataLoader,
                  aggregating_strategy: Callable[[torch.tensor], torch.tensor]):
         self._clients: list[Client] = clients
         init_net_grads(net)
