@@ -1,3 +1,5 @@
+from copy import copy
+
 import numpy as np
 from torch import nn
 import torch
@@ -6,23 +8,21 @@ from differential_privacy.gep.utils import flatten_tensor, get_bases, check_appr
 
 class GEP(nn.Module):
 
-    def __init__(self, num_bases, batch_size, clip0=1, clip1=1):
+    def __init__(self, public_clients, num_bases, batch_size, clip0=1, clip1=1):
         super(GEP, self).__init__()
-
+        self._public_clients = public_clients
         self.num_bases_list = []
         self.num_bases = num_bases
         self.clip0 = clip0
         self.clip1 = clip1
         self.batch_size = batch_size
-        self.approx_error = {}
-        self.approx_error_pca = {}
-        self._selected_bases_list = None
+        self.approx_error_pca_private = {}
         self._selected_pca_list: list[torch.tensor] = []
-        self._approx_errors = []
+        self._approx_errors_pca_public = []
 
     @property
-    def approx_errors(self):
-        return self._approx_errors
+    def approx_errors_pca_public(self):
+        return self._approx_errors_pca_public
 
     @property
     def selected_bases_list(self):
@@ -47,11 +47,10 @@ class GEP(nn.Module):
             num_bases_list = self.num_bases * (sqrt_num_param_list / np.sum(sqrt_num_param_list))
             num_bases_list = num_bases_list.astype(int)
 
-            device = next(net.parameters()).device
             offset = 0
-
             for i, num_param in enumerate(num_param_list):
                 pub_grad = anchor_grads[:, offset:offset + num_param]
+                device = pub_grad.device
                 offset += num_param
                 num_bases = num_bases_list[i]
                 print("PUBLIC GET BASES")
@@ -64,67 +63,46 @@ class GEP(nn.Module):
 
             self._selected_pca_list = selected_pca_list
             self.num_bases_list = num_bases_list
-            self._approx_errors = pub_errs
+            self._approx_errors_pca_public = pub_errs
             del pub_errs, num_bases_list
-        del anchor_grads
 
     # @profile
     def forward(self, target_grad, logging=True):
-        with torch.no_grad():
-            num_param_list = self.num_param_list
-            embedding_by_pca_list = []
-            offset = 0
-            pca_reconstruction_errs = []
-            for i, num_param in enumerate(num_param_list):
-                grad = target_grad[:, offset:offset + num_param]
 
-                get_bases(grad, self.num_bases)
+        grad = target_grad
 
-                selected_pca: torch.tensor = self._selected_pca_list[i].squeeze().T
+        get_bases(grad, self.num_bases)
 
-                embedding_by_pca = torch.matmul(grad, selected_pca)
+        selected_pca: torch.tensor = self._selected_pca_list[i].squeeze().T
 
-                pca_reconstruction_error = check_approx_error(selected_pca, grad)
+        embedding_by_pca = torch.matmul(grad, selected_pca)
 
-                pca_reconstruction_errs.append(pca_reconstruction_error)
+        pca_reconstruction_error = check_approx_error(selected_pca, grad)
 
-                if logging:
-                    cur_approx_pca = torch.matmul(torch.mean(embedding_by_pca, dim=0).view(1, -1),
-                                                  selected_pca.T).view(-1)
-                    cur_target = torch.mean(grad, dim=0)
-                    cur_target_sqr_norm = torch.sum(torch.square(cur_target))
+        if logging:
+            cur_approx_pca = torch.matmul(torch.mean(embedding_by_pca, dim=0).view(1, -1),
+                                          selected_pca.T).view(-1)
+            cur_target = torch.mean(grad, dim=0)
+            cur_target_sqr_norm = torch.sum(torch.square(cur_target))
 
-                    cur_error_pca = torch.sum(torch.square(cur_approx_pca - cur_target)) / cur_target_sqr_norm
-                    print('group wise approx PRIVATE error pca: %.2f%%' % (100 * cur_error_pca.item()))
+            cur_error_pca = torch.sum(torch.square(cur_approx_pca - cur_target)) / cur_target_sqr_norm
+            print('group wise approx PRIVATE error pca: %.2f%%' % (100 * cur_error_pca.item()))
 
-                    if i in self.approx_error_pca:
-                        self.approx_error_pca[i].append(cur_error_pca.item())
-                    else:
-                        self.approx_error_pca[i] = []
-                        self.approx_error_pca[i].append(cur_error_pca.item())
+            if i in self.approx_error_pca_private:
+                self.approx_error_pca_private[i].append(cur_error_pca.item())
+            else:
+                self.approx_error_pca_private[i] = []
+                self.approx_error_pca_private[i].append(cur_error_pca.item())
 
-                embedding_by_pca_list.append(embedding_by_pca)
-                offset += num_param
-                del grad, embedding_by_pca, selected_pca
+        clipped_embedding_pca = clip_column(embedding_by_pca, clip=self.clip0, inplace=False)
 
-            concatenated_embedding_pca = torch.cat(embedding_by_pca_list, dim=1)
+        avg_clipped_embedding_pca = torch.sum(clipped_embedding_pca, dim=0) / self.batch_size
+        del clipped_embedding_pca
 
-            clipped_embedding_pca = clip_column(concatenated_embedding_pca, clip=self.clip0, inplace=False)
+        avg_target_grad = torch.sum(target_grad, dim=0) / self.batch_size
 
-            avg_clipped_embedding_pca = torch.sum(clipped_embedding_pca, dim=0) / self.batch_size
-            del clipped_embedding_pca
+        return avg_clipped_embedding_pca.view(-1), avg_target_grad.view(-1)
 
-            no_reduction_approx_pca = get_approx_grad(concatenated_embedding_pca, bases_list=self._selected_pca_list,
-                                                      num_bases_list=self.num_bases_list)
-
-            residual_gradients_pca = target_grad - no_reduction_approx_pca
-
-            clip_column(residual_gradients_pca, clip=self.clip1)  # inplace clipping to save memory
-            clipped_residual_gradients_pca = residual_gradients_pca
-
-            avg_clipped_residual_gradients_pca = torch.sum(clipped_residual_gradients_pca, dim=0) / self.batch_size
-            avg_target_grad = torch.sum(target_grad, dim=0) / self.batch_size
-            del no_reduction_approx_pca, residual_gradients_pca, clipped_residual_gradients_pca
-
-            return avg_clipped_embedding_pca.view(-1), avg_clipped_residual_gradients_pca.view(
-                -1), avg_target_grad.view(-1)
+    @property
+    def selected_pca_list(self):
+        return self._selected_pca_list
