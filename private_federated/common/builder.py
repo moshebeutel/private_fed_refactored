@@ -1,17 +1,16 @@
+from functools import partial
 import torch
 from torch.utils.data import Dataset
 from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
+from private_federated.common.config import Config
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
+from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.federated_learning.server import Server
 from private_federated.models import model_factory
-
-
-# def create_gep_strategy():
-#     GepNoResidualAggregationStrategy(GEP(num_bases, batch_size, clip0, clip1))
 
 
 def get_aggregation_strategy(args):
@@ -31,24 +30,60 @@ def get_aggregation_strategy(args):
     return strategy
 
 
+def get_server_params(server_type_name,
+                      clients_factory: ClientFactory,
+                      models_factory,
+                      dataset_factory,
+                      aggregation_strategy_factory):
+    clients = clients_factory.private_train_clients
+    net = models_factory()
+    server_test_loader, server_val_loader = get_loaders(dataset_factory)
+    strategy = aggregation_strategy_factory()
+    print('Aggregation strategy:', strategy.__class__.__name__)
+    server_params = {'clients': clients,
+                     'net': net,
+                     'val_loader': server_val_loader,
+                     'test_loader': server_test_loader,
+                     'aggregating_strategy': strategy}
+
+    if server_type_name == GepServer.__name__:
+        server_params['private_clients'] = server_params.pop('clients')
+        server_params['public_clients'] = clients_factory.public_clients
+    return server_params
+
+
+def get_server_type() -> str:
+    print('EMBED_GRADS', Config.EMBED_GRADS)
+    return (Server if not Config.EMBED_GRADS else GepServer).__name__
+
+
 def build_all(args):
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
-    users_list = [cid for cid in range(args.num_clients)]
-    loaders_generator = DataLoadersGenerator(users=users_list, datasets=[dataset_factory.train_set])
-    clients_factory = ClientFactory(loaders=loaders_generator.users_loaders)
-    net = model_factory.get_model(args)
+    clients_factory = ClientFactory(dataset_factory)
+    models_factory_fn = partial(model_factory.get_model, args)
+    aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
+    server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
+    return server
 
+
+def get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn):
+    server_type_name = get_server_type()
+    print('Server type:', server_type_name)
+    server_params = get_server_params(server_type_name,
+                                      clients_factory,
+                                      models_factory_fn,
+                                      dataset_factory,
+                                      aggregation_strategy_factory_fn)
+    server = globals()[server_type_name](**server_params)
+    return server
+
+
+def get_loaders(dataset_factory):
     loader_params = {"batch_size": DataLoadersGenerator.BATCH_SIZE, "shuffle": False,
                      "pin_memory": True, "num_workers": 0}
     server_val_loader = create_loader_from_dataset(dataset_factory.val_set, **loader_params)
     server_test_loader = create_loader_from_dataset(dataset_factory.test_set, **loader_params)
-
-    strategy = get_aggregation_strategy(args)
-
-    server = Server(clients=clients_factory.clients, net=net,
-                    val_loader=server_val_loader, test_loader=server_test_loader,
-                    aggregating_strategy=strategy)
-    return server
+    return server_test_loader, server_val_loader
 
 
 def create_loader_from_dataset(dataset: Dataset, **params):

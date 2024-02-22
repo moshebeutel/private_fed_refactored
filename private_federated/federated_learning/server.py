@@ -5,6 +5,7 @@ import torch.nn
 import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from private_federated.differential_privacy.gep.utils import flatten_tensor
 from private_federated.federated_learning.client import Client
 from private_federated.train.utils import init_net_grads, get_net_grads, evaluate
 
@@ -25,6 +26,7 @@ class Server:
         self._clients: list[Client] = clients
         init_net_grads(net)
         self._grads: {str: torch.tensor} = get_net_grads(net)
+        self._shapes = [g.shape for g in self._grads.values()]
         self._net: torch.nn.Module = net
         self._device = next(net.parameters()).device
         self._sampled_clients: list[Client] = []
@@ -74,11 +76,26 @@ class Server:
             net_copy_for_client = copy(self._net).to(self._device)
             c.train(net=net_copy_for_client)
 
-    def aggregate_grads(self):
+    def get_sampled_clients_grads(self) -> torch.Tensor:
+        # collect private gradients embed onto subspace and aggregate
+        layer_grad_batch_list = []
         for k in self._grads.keys():
-            grad_batch = torch.stack([c.grads[k] for c in self._sampled_clients])
-            self._grads[k] = self._aggregating_strategy(grad_batch)
-            del grad_batch
+            layer_grad_batch = torch.stack([c.grads[k] for c in self._sampled_clients])
+            layer_grad_batch_list.append(layer_grad_batch)
+        grad_batch = flatten_tensor(layer_grad_batch_list)
+        return grad_batch
+
+    def aggregate_grads(self):
+        grad_batch: torch.Tensor = self.get_sampled_clients_grads()
+        aggregated_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch)
+        del grad_batch
+        self.unflatten_aggregated_grads(aggregated_grads_flattened)
+
+    def unflatten_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
+        offset = 0
+        for grad_data in self._grads.values():
+            grad_data += aggregated_grads_flattened[offset:offset + grad_data.numel()].reshape(grad_data.shape)
+            offset += grad_data.numel()
 
     def update_net(self):
         self._optimizer.zero_grad(set_to_none=False)

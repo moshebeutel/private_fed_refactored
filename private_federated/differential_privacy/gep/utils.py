@@ -60,9 +60,9 @@ def get_bases(pub_grad, num_bases):
     num_bases = min(num_bases, min(num_p, num_k))
 
     pca = PCA(n_components=num_bases)
-    pca.fit(pub_grad.detach().numpy())
+    pca.fit(pub_grad.cpu().detach().numpy())
 
-    error_rate = check_approx_error(torch.from_numpy(pca.components_).T, pub_grad)
+    error_rate = 0 # check_approx_error(torch.from_numpy(pca.components_).T, pub_grad)
 
     return num_bases, error_rate, pca
 

@@ -1,4 +1,6 @@
 from pathlib import Path
+
+from private_federated.common.config import Config
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
@@ -21,6 +23,9 @@ def populate_args(args):
     Server.WEIGHT_DECAY = args.weight_decay
     Server.MOMENTUM = args.momentum
 
+    Config.EMBED_GRADS = args.embed_grads
+
+    print('EMBED_GRADS', Config.EMBED_GRADS)
 
 def split_to_floats(inp: str) -> list[float]:
     lstrings = inp.split(sep=',')
@@ -68,6 +73,9 @@ def get_command_line_arguments(parser):
     parser.add_argument("--use-cuda", type=bool, default=True,
                         help='Use GPU. Use cpu if not')
 
+    parser.add_argument("--embed-grads", type=bool, default=Config.EMBED_GRADS,
+                        help='Use GEP')
+    parser.add_argument("--embedding-num_bases", type=int, default=10, help="Number of basis elements")
     parser.add_argument("--clip", type=float, default=float('inf'),
                         help='Gradients clip value. If inf - no clip')
 
@@ -79,5 +87,6 @@ def get_command_line_arguments(parser):
 
     parser.add_argument('--epsilon', type=float, default=1.0)
     parser.add_argument('--epsilon-values', type=str, default='1')
+
     args = parser.parse_args()
     return args

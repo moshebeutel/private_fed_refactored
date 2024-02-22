@@ -9,3 +9,4 @@ def to_dict() -> dict:
 
 class Config:
     NUM_ROUNDS = 20
+    EMBED_GRADS = False
