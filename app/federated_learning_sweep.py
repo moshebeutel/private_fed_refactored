@@ -1,14 +1,13 @@
 import argparse
-
-import wandb
 from functools import partial
-
-
+import wandb
 import private_federated.common
+from private_federated.common.config import Config
+from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated import common
-from private_federated.common import utils
+from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
 from private_federated.common import builder
-from private_federated.common.utils import split_to_floats
+from private_federated.common import utils
 
 
 def single_train(args):
@@ -30,8 +29,11 @@ def sweep_train(sweep_id, args, config=None):
         # args.num_clients_agg = config.num_clients_agg
         # args.learning_rate = config.learning_rate
         args.noise_multiplier = config.noise_multiplier
-        args.clip = 0.0001
-        # args.epsilon = config.epsilon
+        DpSgdAggregationStrategy.NOISE_MULTIPLIER = config.noise_multiplier
+        args.clip = config.clip
+        AverageClipStrategy.CLIP_VALUE = config.clip
+        args.embed_grads = config.embed_grads
+        Config.EMBED_GRADS = config.embed_grads
         wandb.run.name = f'noise multiplier {args.noise_multiplier} clip {args.clip}'
         single_train(args)
 
@@ -50,15 +52,12 @@ def run_sweep(args):
 
     sweep_config['metric'] = metric
 
-    # parameters_dict.update({
-    #     'epochs': {
-    #         'value': 50},
-    #     })
-
     parameters_dict.update({
         'noise_multiplier': {
-            'values': [874.16, 107.45935, 12.79182, 4.72193, 2.01643]
-            # suited for 100 rounds of epsilons: 0.01,0.1,1.0,3.0,8.0
+            'values': [12.79182, 4.72193, 2.01643]
+        },
+        'embed_grads': {
+            'values': [True, False]
         },
         # 'learning_rate': {
         #     'values': [0.00001, 0.0001, 0.001, 0.01, 0.1]
@@ -69,23 +68,15 @@ def run_sweep(args):
         # 'num_rounds': {
         #     'values': [100, 500, 1000]
         # },
-        # 'clip': {
-        #     # 'values': [0.00001, 0.0001, 0.001]
-        #     # 'values': [0.00001]
-        #     'values': [0.0001, 0.001, 0.01]
-        # },
+        'clip': {
+            'values': [0.001, 0.01, 0.1, 1.0]
+        },
         # 'sigma': {
         #     'values': [1.2, 3.2, 9.6, 0.6, 1.6, 4.8]
         # },
         # 'seed': {
         #     'values': [20]
         #     # 'values': [20, 40, 60]
-        # },
-        # 'epsilon': {
-        #     'values': [1.0, 3.0, 8.0]
-        #     # 'values': [1e6]
-        #     # 'values': [1.0]
-        #     # 'values': [0.5, 0.1, 0.01, 0.001]
         # },
         # 'sample_with_replacement': {
         #     'values': [0, 1]
@@ -96,48 +87,26 @@ def run_sweep(args):
         # },
         # 'dp': {
         #     # 'values': ['GEP_NO_RESIDUALS', 'GEP_RESIDUALS', 'SGD_DP', 'NO_DP']
-        #     # 'values': ['GEP_NO_RESIDUALS', 'GEP_RESIDUALS', 'SGD_DP']
-        #     # 'values': ['GEP_NO_RESIDUALS', 'GEP_RESIDUALS']
-        #     'values': ['GEP_NO_RESIDUALS']
-        #     # 'values': ['SGD_DP']
-        #     # 'values': ['NO_DP']
-        #
-        # },
-        # 'use_pca': {
-        #     'values': [1, 0]
         # },
         # 'num_clients_public': {
         #     'values': [150]
         #     # 'values': [25, 50, 70, 100]
         # },
-        # 'hidden_dim': {
-        #     'values': [15, 25, 30]
-        # },
         # 'classes_per_user': {
-        #     # 'values': [2, 6, 10]
         #     'values': [2, 6, 10]
-        #     # 'values': [2, 6, 10]
         # },
         # 'clients_internal_epochs': {
         #     'values': [1, 5]
         # },
         # 'use_gp': {
         #     'values': [0]
-        #     # 'values': [0, 1]
         # },
         # 'gep_num_bases': {
         #     'values': [150]
-        # },
-        #
-        # 'gep_num_groups': {
-        #     'values': [15, 20]
-        # },
-        # 'gep_power_iter': {
-        #     'values': [1, 5]
         # }
     })
 
-    parameters_dict.update({'epsilon': {'values': split_to_floats(args.epsilon_values)}})
+    # parameters_dict.update({'epsilon': {'values': split_to_floats(args.epsilon_values)}})
 
     sweep_id = wandb.sweep(sweep_config, project="pytorch-sweeps-demo")
 

@@ -8,5 +8,7 @@ def to_dict() -> dict:
 
 
 class Config:
-    NUM_ROUNDS = 20
-    EMBED_GRADS = False
+    LOG2WANDB = False
+    EMBED_GRADS = True
+    CLIP_VALUE = 0.1
+    NOISE_MULTIPLIER = 12.79182

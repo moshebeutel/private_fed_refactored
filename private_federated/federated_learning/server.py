@@ -5,6 +5,7 @@ import torch.nn
 import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from private_federated.common.config import Config
 from private_federated.differential_privacy.gep.utils import flatten_tensor
 from private_federated.federated_learning.client import Client
 from private_federated.train.utils import init_net_grads, get_net_grads, evaluate
@@ -41,7 +42,6 @@ class Server:
         self._aggregating_strategy = aggregating_strategy
 
     def federated_learn(self):
-        wandb.init(project="emg_gp_moshe", entity="emg_diff_priv", name='federated simple')
 
         pbar = tqdm(range(Server.NUM_ROUNDS))
         best_val_acc = 0.0
@@ -52,12 +52,14 @@ class Server:
             best_val_acc = max(best_val_acc, acc)
             pbar.set_description(f'Round {i} finished. Acc {acc} ({best_val_acc} best acc till now,'
                                  f' best round {best_round}), loss {loss}')
-            wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc,
-                       'best_round': best_round})
+            if Config.LOG2WANDB:
+                wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc,
+                           'best_round': best_round})
 
         acc, loss = self.eval_net(loader=self._test_loader)
         print(f'test loss {loss} acc {acc}')
-        wandb.log({'test_acc': acc, 'test_loss': loss, 'best_epoch_validation_acc': best_val_acc})
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc': acc, 'test_loss': loss})
 
     def federated_round(self):
         self.sample_clients()
