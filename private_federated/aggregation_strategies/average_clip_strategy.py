@@ -3,6 +3,7 @@ from private_federated.aggregation_strategies.average_strategy import AverageStr
 
 
 class AverageClipStrategy(AverageStrategy):
+
     def __init__(self, clip_value: float):
         self._C = clip_value
 
@@ -13,4 +14,3 @@ class AverageClipStrategy(AverageStrategy):
         clip_factor = torch.clip(norm_ratio, min=1.0)
         clipped_grad_batch = torch.div(flat_g, clip_factor.reshape(-1, 1)).reshape(grad_batch.shape)
         return super().__call__(grad_batch=clipped_grad_batch)
-

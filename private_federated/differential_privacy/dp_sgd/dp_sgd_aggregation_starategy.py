@@ -3,6 +3,7 @@ from private_federated.aggregation_strategies.average_clip_strategy import Avera
 
 
 class DpSgdAggregationStrategy(AverageClipStrategy):
+
     def __init__(self, clip_value: float, noise_multiplier: float):
         super().__init__(clip_value=clip_value)
         self._noise_std = noise_multiplier * clip_value

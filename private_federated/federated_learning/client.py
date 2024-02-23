@@ -5,7 +5,7 @@ from private_federated.train.utils import get_net_grads
 
 
 class Client:
-    INTERNAL_EPOCHS = 5
+    INTERNAL_EPOCHS = 1
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
     OPTIMIZER_PARAMS = {'lr': 1e-3, 'weight_decay': 1e-3, 'momentum': 0.9}

@@ -9,7 +9,6 @@ from private_federated.models.model_factory import get_model_hub_names
 
 
 def populate_args(args):
-
     DatasetFactory.DATASETS_DIR = args.data_path
     DataLoadersGenerator.CLASSES_PER_USER = args.classes_per_user
     DataLoadersGenerator.BATCH_SIZE = args.batch_size
@@ -24,12 +23,16 @@ def populate_args(args):
     Server.MOMENTUM = args.momentum
 
     Config.EMBED_GRADS = args.embed_grads
+    Config.CLIP_VALUE = args.clip
+    Config.NOISE_MULTIPLIER = args.noise_multiplier
 
     print('EMBED_GRADS', Config.EMBED_GRADS)
+
 
 def split_to_floats(inp: str) -> list[float]:
     lstrings = inp.split(sep=',')
     return [float(entry) for entry in lstrings]
+
 
 def get_command_line_arguments(parser):
     """
@@ -76,11 +79,12 @@ def get_command_line_arguments(parser):
     parser.add_argument("--embed-grads", type=bool, default=Config.EMBED_GRADS,
                         help='Use GEP')
     parser.add_argument("--embedding-num_bases", type=int, default=10, help="Number of basis elements")
-    parser.add_argument("--clip", type=float, default=float('inf'),
+    parser.add_argument("--clip", type=float, default=Config.CLIP_VALUE,
                         help='Gradients clip value. If inf - no clip')
 
-    parser.add_argument("--noise-multiplier", type=float, default=0.0, help='ratio  (DP noise ratio) / sensitivity.'
-                                                                            ' 0.0 for non-private mechanisms.')
+    parser.add_argument("--noise-multiplier", type=float, default=Config.NOISE_MULTIPLIER,
+                        help='ratio  (DP noise ratio) / sensitivity.'
+                             ' 0.0 for non-private mechanisms.')
 
     parser.add_argument("--saved-models-path", type=str, default='./saved_models',
                         help='Train model in a federated_learning manner before fine tuning')

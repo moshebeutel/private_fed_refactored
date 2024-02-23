@@ -90,8 +90,7 @@ class ResNet(nn.Module):
                 nn.GroupNorm(gn_groups, self.inplanes, affine=False),  # nn.BatchNorm2d(self.inplanes, affine=False),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes
         for _ in range(1, blocks):
             layers.append(block(planes, planes))

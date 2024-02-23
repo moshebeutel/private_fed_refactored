@@ -9,7 +9,6 @@ import six
 from scipy import special
 
 
-
 def _compute_eps(orders, rdp, delta):
     """Compute epsilon given a list of RDP values and target delta.
   Args:
@@ -246,13 +245,13 @@ def loop_for_sigma(q, T, eps, delta, cur_sigma, interval, rdp_orders=32, rgp=Tru
     while True:
         orders = np.arange(2, rdp_orders, 0.1)
         steps = T
-        if (rgp):
+        if rgp:
             rdp = compute_rdp(q, cur_sigma, steps,
-                              orders) * 2  ## when using residual gradients, the sensitivity is sqrt(2)
+                              orders) * 2  # when using residual gradients, the sensitivity is sqrt(2)
         else:
             rdp = compute_rdp(q, cur_sigma, steps, orders)
         cur_eps, _, opt_order = get_privacy_spent(orders, rdp, target_delta=delta)
-        if (cur_eps < eps and cur_sigma > interval):
+        if cur_eps < eps and cur_sigma > interval:
             cur_sigma -= interval
             previous_eps = cur_eps
         else:
