@@ -1,6 +1,6 @@
+import logging
 from pathlib import Path
-
-from private_federated.common.config import Config
+from private_federated.common.config import Config, to_dict
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
@@ -26,7 +26,10 @@ def populate_args(args):
     Config.CLIP_VALUE = args.clip
     Config.NOISE_MULTIPLIER = args.noise_multiplier
 
-    print('EMBED_GRADS', Config.EMBED_GRADS)
+    logging.info({**to_dict(DataLoadersGenerator),
+                  **to_dict(Client),
+                  **to_dict(Server),
+                  **to_dict(Config)})
 
 
 def split_to_floats(inp: str) -> list[float]:

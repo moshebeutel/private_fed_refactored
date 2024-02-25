@@ -7,6 +7,9 @@ class AverageClipStrategy(AverageStrategy):
     def __init__(self, clip_value: float):
         self._C = clip_value
 
+    def __repr__(self):
+        return f"AverageClipStrategy(clip_value={self._C})"
+
     def __call__(self, grad_batch: torch.tensor) -> torch.tensor:
         flat_g = grad_batch.reshape(grad_batch.shape[0], -1)
         norm = torch.norm(flat_g, dim=1)

@@ -1,3 +1,4 @@
+import logging
 import torch.nn
 from private_federated.models.resnet_cifar import resnet20
 from torch import nn
@@ -26,4 +27,5 @@ def get_model(args):
         "cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu"
     )
     model.to(device)
+    logging.info(f'Created model: {args.model_name} in device: {device}')
     return model

@@ -1,3 +1,4 @@
+import logging
 import random
 from copy import copy
 from typing import Callable
@@ -57,7 +58,7 @@ class Server:
                            'best_round': best_round})
 
         acc, loss = self.eval_net(loader=self._test_loader)
-        print(f'test loss {loss} acc {acc}')
+        logging.info(f'test loss {loss} acc {acc}')
         if Config.LOG2WANDB:
             wandb.log({'test_acc': acc, 'test_loss': loss})
 
@@ -70,7 +71,7 @@ class Server:
 
     def sample_clients(self):
         self._sampled_clients = self._sample_fn(self._clients, k=Server.NUM_CLIENT_AGG)
-        # print([c.cid for c in self._sampled_clients])
+        logging.debug(f'sampled clients {str([c.cid for c in self._sampled_clients])}')
 
     def preform_train_round(self):
         assert self._sampled_clients, f'Expected sampled clients. Got {len(self._sampled_clients)} clients sampled'

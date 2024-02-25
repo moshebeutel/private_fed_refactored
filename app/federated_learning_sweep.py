@@ -1,13 +1,12 @@
 import argparse
+import logging
 from functools import partial
 import wandb
+import private_federated
 import private_federated.common
-from private_federated.common.config import Config
-from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
-from private_federated import common
-from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
 from private_federated.common import builder
 from private_federated.common import utils
+from private_federated.common.config import Config
 
 
 def single_train(args):
@@ -20,25 +19,22 @@ def sweep_train(sweep_id, args, config=None):
     with wandb.init(config=config):
         config = wandb.config
         config.update({'sweep_id': sweep_id})
-        print(config)
-
-        # args.classes_per_user = config.classes_per_user
-        # args.batch_size = config.batch_size
-        # args.clients_internal_epochs = config.clients_internal_epochs
-        # args.num_rounds = config.num_rounds
-        # args.num_clients_agg = config.num_clients_agg
-        # args.learning_rate = config.learning_rate
+        logging.info(config)
         args.noise_multiplier = config.noise_multiplier
-        DpSgdAggregationStrategy.NOISE_MULTIPLIER = config.noise_multiplier
+        Config.NOISE_MULTIPLIER = config.noise_multiplier
         args.clip = config.clip
-        AverageClipStrategy.CLIP_VALUE = config.clip
+        Config.CLIP_VALUE = config.clip
         args.embed_grads = config.embed_grads
         Config.EMBED_GRADS = config.embed_grads
-        wandb.run.name = f'noise multiplier {args.noise_multiplier} clip {args.clip}'
+        run_name = f'Embed grads {args.embed_grads} Noise mult. {args.noise_multiplier} clip {args.clip}'
+        logging.info(run_name)
+        wandb.run.name = run_name
         single_train(args)
 
 
 def run_sweep(args):
+    logging.basicConfig(level=logging.INFO)
+    logging.info("run sweep")
     sweep_config = {
         'method': 'grid'
     }
@@ -59,15 +55,6 @@ def run_sweep(args):
         'embed_grads': {
             'values': [True, False]
         },
-        # 'learning_rate': {
-        #     'values': [0.00001, 0.0001, 0.001, 0.01, 0.1]
-        # },
-        # 'batch_size': {
-        #     'values': [128, 256, 512]
-        # },
-        # 'num_rounds': {
-        #     'values': [100, 500, 1000]
-        # },
         'clip': {
             'values': [0.001, 0.01, 0.1, 1.0]
         },
@@ -115,6 +102,6 @@ def run_sweep(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
-    args = common.utils.get_command_line_arguments(parser)
+    args = private_federated.common.utils.get_command_line_arguments(parser)
     run_sweep(args)
 

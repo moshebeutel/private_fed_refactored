@@ -1,1 +1,1 @@
-poetry run python main.py --clip 1.0 --noise-multiplier 12.74 --num-rounds 100
+poetry run python app/federated_learning.py --clip 1.0 --noise-multiplier 12.74 --num-rounds 100

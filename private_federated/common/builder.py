@@ -1,3 +1,4 @@
+import logging
 from functools import partial
 import torch
 from torch.utils.data import Dataset
@@ -14,7 +15,6 @@ from private_federated.models import model_factory
 
 
 def get_aggregation_strategy(args):
-    strategy = None
     if args.clip < float('inf'):
         C = args.clip
         assert C > 0.0, f'Expected positive clip value. Got {C}'
@@ -26,6 +26,7 @@ def get_aggregation_strategy(args):
         assert args.noise_multiplier == 0.0, (f'No clip given. '
                                               f'Expected non-private but got noise multiplier {args.noise_multiplier}')
         strategy = AverageStrategy()
+    logging.info(f'Created aggregation strategy {strategy}')
     assert strategy is not None, 'Some unexpected logic path'
     return strategy
 
@@ -39,7 +40,7 @@ def get_server_params(server_type_name,
     net = models_factory()
     server_test_loader, server_val_loader = get_loaders(dataset_factory)
     strategy = aggregation_strategy_factory()
-    print('Aggregation strategy:', strategy.__class__.__name__)
+    logging.info(f'Aggregation strategy: {strategy.__class__.__name__}')
     server_params = {'clients': clients,
                      'net': net,
                      'val_loader': server_val_loader,
@@ -53,7 +54,6 @@ def get_server_params(server_type_name,
 
 
 def get_server_type() -> str:
-    print('EMBED_GRADS', Config.EMBED_GRADS)
     return (Server if not Config.EMBED_GRADS else GepServer).__name__
 
 
@@ -68,7 +68,7 @@ def build_all(args):
 
 def get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn):
     server_type_name = get_server_type()
-    print('Server type:', server_type_name)
+    logging.info(f'Server type: {server_type_name}')
     server_params = get_server_params(server_type_name,
                                       clients_factory,
                                       models_factory_fn,
