@@ -79,9 +79,9 @@ def get_command_line_arguments(parser):
     parser.add_argument("--use-cuda", type=bool, default=True,
                         help='Use GPU. Use cpu if not')
 
-    parser.add_argument("--embed-grads", type=bool, default=Config.EMBED_GRADS,
-                        help='Use GEP')
-    parser.add_argument("--embedding-num_bases", type=int, default=10, help="Number of basis elements")
+    parser.add_argument("--embed-grads", action='store_true',  help='Use GEP')
+    parser.add_argument("--num-clients-public", type=int, default=10, help="Number of public clients")
+    parser.add_argument("--embedding-num-bases", type=int, default=10, help="Number of basis elements")
     parser.add_argument("--clip", type=float, default=Config.CLIP_VALUE,
                         help='Gradients clip value. If inf - no clip')
 

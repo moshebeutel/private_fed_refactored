@@ -17,6 +17,6 @@ def run_single(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
+    parser = argparse.ArgumentParser(description="Private Federated Learning Run")
     args = utils.get_command_line_arguments(parser)
     run_single(args)

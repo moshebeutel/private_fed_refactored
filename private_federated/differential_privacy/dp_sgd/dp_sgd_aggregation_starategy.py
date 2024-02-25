@@ -2,6 +2,7 @@ import logging
 
 import torch
 from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
+from private_federated.aggregation_strategies.utils import clip_grad_batch
 
 
 class DpSgdAggregationStrategy(AverageClipStrategy):
@@ -15,15 +16,20 @@ class DpSgdAggregationStrategy(AverageClipStrategy):
         return f"DpSgdAggregationStrategy(clip_value={self._C}, noise_multiplier={self._noise_multiplier})"
 
     def __call__(self, grad_batch: torch.tensor) -> torch.tensor:
-        average_clipped_grads = super().__call__(grad_batch=grad_batch)
+
         dp_noise = torch.normal(mean=0, std=self._noise_std,
-                                size=average_clipped_grads.size(), device=grad_batch.device) / grad_batch.shape[0]
-        logging.debug(f'dp_noise shape: {dp_noise.shape}'
-                      f' average clipped grads shape: {average_clipped_grads.shape}'
+                                size=grad_batch.size(), device=grad_batch.device)
+
+        clipped_grad_batch = clip_grad_batch(grad_batch, self._C)
+
+        logging.info(f'dp_noise shape: {dp_noise.shape}'
+                      f' average clipped grads shape: {clipped_grad_batch.shape}'
                       f' grad_batch shape: {grad_batch.shape}')
 
-        logging.debug(f'dp_noise norn: {torch.norm(dp_noise)}'
-                      f' average clipped grads norm: {torch.norm(average_clipped_grads)}'
-                      f' grad_batch norm: {torch.norm(grad_batch)}')
+        logging.info(f'dp_noise mean norm: {torch.mean(torch.norm(dp_noise, dim=1))}'
+                      f' clipped grads mean norm: {torch.mean(torch.norm(clipped_grad_batch, dim=1))}'
+                      f' grad_batch mean norm: {torch.mean(torch.norm(grad_batch, dim=1))}')
 
-        return average_clipped_grads + dp_noise
+        average_clipped_grads = torch.mean(clipped_grad_batch + dp_noise, dim=0)
+
+        return average_clipped_grads
