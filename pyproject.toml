@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "private-federated"
-version = "0.2.6"
+version = "0.2.8"
 description = "Implementation of differentially private federated learning"
 authors = ["Moshe Beutel <moshebeutel@gmail.com>"]
 readme = "README.md"
@@ -11,14 +11,11 @@ python = "^3.10"
 tqdm = "^4.66.1"
 wandb = "^0.15.9"
 dp-accounting = "^0.4.3"
-poethepoet = "^0.24.1"
 typing-extensions = "^4.8.0"
 pillow = "^10.1.0"
 scikit-learn = "^1.4.1.post1"
-
-
-[tool.poe.tasks]
-force-cuda118 = "python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118"
+torch = "^2.2.1"
+torchvision = "^0.17.1"
 
 
 [build-system]

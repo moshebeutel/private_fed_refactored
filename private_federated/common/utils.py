@@ -18,6 +18,7 @@ def populate_args(args):
 
     Client.INTERNAL_EPOCHS = args.clients_internal_epochs
 
+    ClientFactory.NUM_ALL_USERS = args.num_clients_total
     ClientFactory.NUM_CLIENTS_PUBLIC = args.num_clients_public
 
     Server.NUM_ROUNDS = args.num_rounds
@@ -61,7 +62,8 @@ def get_command_line_arguments(parser):
     parser.add_argument("--dataset-name", type=str, default=f"cifar10",
                         choices=[DatasetFactory.DATASETS_HUB.keys()],
                         help="Name of dataset (cifar10, cifar100 ...)")
-    parser.add_argument("--num-clients", type=int, default="500", help="Number of clients in federation")
+    parser.add_argument("--num-clients-total", type=int, default=ClientFactory.NUM_ALL_USERS,
+                        help="Number of clients in federation")
     parser.add_argument("--num-clients-agg", type=int, default=Server.NUM_CLIENT_AGG,
                         help="Number of clients sampled each round")
     parser.add_argument("--clients-internal-epochs", type=int, default=Client.INTERNAL_EPOCHS,
@@ -100,9 +102,6 @@ def get_command_line_arguments(parser):
 
     parser.add_argument("--saved-models-path", type=str, default='./saved_models',
                         help='Train model in a federated_learning manner before fine tuning')
-
-    parser.add_argument('--epsilon', type=float, default=1.0)
-    parser.add_argument('--epsilon-values', type=str, default='1')
 
     args = parser.parse_args()
     return args
