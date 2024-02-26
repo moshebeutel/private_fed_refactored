@@ -7,6 +7,27 @@ import private_federated.common
 from private_federated.common import builder
 from private_federated.common import utils
 from private_federated.common.config import Config
+from private_federated.data.loaders_generator import DataLoadersGenerator
+from private_federated.differential_privacy.gep.gep_server import GepServer
+from private_federated.federated_learning.clients_factory import ClientFactory
+
+
+def set_seed(seed, cudnn_enabled=True):
+    import numpy as np
+    import random
+    import torch
+
+    np.random.seed(seed)
+    random.seed(seed)
+
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.enabled = cudnn_enabled
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
 def single_train(args):
@@ -20,14 +41,23 @@ def sweep_train(sweep_id, args, config=None):
         config = wandb.config
         config.update({'sweep_id': sweep_id})
         logging.info(config)
+        set_seed(30)
+        args.classes_per_user = config.classes_per_user
+        DataLoadersGenerator.CLASSES_PER_USER = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         Config.NOISE_MULTIPLIER = config.noise_multiplier
         args.clip = config.clip
         Config.CLIP_VALUE = config.clip
         args.embed_grads = config.embed_grads
         Config.EMBED_GRADS = config.embed_grads
-        run_name = f'Embed grads {args.embed_grads} Noise mult. {args.noise_multiplier} clip {args.clip}'
+        GepServer.NUM_BASIS_ELEMENTS = config.gep_num_bases
+        args.embedding_num_bases = config.gep_num_bases
+        args.num_clients_public = config.num_clients_public
+        ClientFactory.NUM_CLIENTS_PUBLIC = config.num_clients_public
+        run_name = f'Embed grads {args.embed_grads},Noise mult. {args.noise_multiplier},Clip {args.clip},Num Basis {args.embedding_num_bases}, Num Public {args.num_clients_public}'
+        # run_name = f'Embed grads {args.embed_grads},Noise mult. {args.noise_multiplier},Clip {args.clip}'
         logging.info(run_name)
+        print('\n'.join(run_name.split(',')))
         wandb.run.name = run_name
         single_train(args)
 
@@ -50,17 +80,14 @@ def run_sweep(args):
 
     parameters_dict.update({
         'noise_multiplier': {
-            'values': [12.79182, 4.72193, 2.01643]
+            'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
-            'values': [True, False]
+            'values': [True]
         },
         'clip': {
-            'values': [0.001, 0.01, 0.1, 1.0]
+            'values': [0.001, 0.1]
         },
-        # 'sigma': {
-        #     'values': [1.2, 3.2, 9.6, 0.6, 1.6, 4.8]
-        # },
         # 'seed': {
         #     'values': [20]
         #     # 'values': [20, 40, 60]
@@ -72,25 +99,21 @@ def run_sweep(args):
         #     'values': [50]
         #     # 'values': [10, 50]
         # },
-        # 'dp': {
-        #     # 'values': ['GEP_NO_RESIDUALS', 'GEP_RESIDUALS', 'SGD_DP', 'NO_DP']
-        # },
-        # 'num_clients_public': {
-        #     'values': [150]
-        #     # 'values': [25, 50, 70, 100]
-        # },
-        # 'classes_per_user': {
-        #     'values': [2, 6, 10]
-        # },
+        'num_clients_public': {
+            'values': [10, 100]
+        },
+        'classes_per_user': {
+            'values': [2, 10]
+        },
         # 'clients_internal_epochs': {
         #     'values': [1, 5]
         # },
         # 'use_gp': {
         #     'values': [0]
         # },
-        # 'gep_num_bases': {
-        #     'values': [150]
-        # }
+        'gep_num_bases': {
+            'values': [10, 100]
+        }
     })
 
     # parameters_dict.update({'epsilon': {'values': split_to_floats(args.epsilon_values)}})
@@ -104,4 +127,3 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
     args = private_federated.common.utils.get_command_line_arguments(parser)
     run_sweep(args)
-
