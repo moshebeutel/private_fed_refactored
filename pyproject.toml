@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "private-federated"
-version = "0.2.4"
+version = "0.2.6"
 description = "Implementation of differentially private federated learning"
 authors = ["Moshe Beutel <moshebeutel@gmail.com>"]
 readme = "README.md"

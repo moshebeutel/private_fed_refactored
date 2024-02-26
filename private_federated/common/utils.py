@@ -1,5 +1,8 @@
 import logging
 from pathlib import Path
+
+from differential_privacy.gep.gep_server import GepServer
+from federated_learning.clients_factory import ClientFactory
 from private_federated.common.config import Config, to_dict
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
@@ -15,6 +18,8 @@ def populate_args(args):
 
     Client.INTERNAL_EPOCHS = args.clients_internal_epochs
 
+    ClientFactory.NUM_CLIENTS_PUBLIC = args.num_clients_public
+
     Server.NUM_ROUNDS = args.num_rounds
     Server.NUM_CLIENT_AGG = args.num_clients_agg
     Server.SAMPLE_CLIENTS_WITH_REPLACEMENT = args.sample_with_replacement
@@ -22,13 +27,17 @@ def populate_args(args):
     Server.WEIGHT_DECAY = args.weight_decay
     Server.MOMENTUM = args.momentum
 
+    GepServer.NUM_BASIS_ELEMENTS = args.num_basis_elements
+
     Config.EMBED_GRADS = args.embed_grads
     Config.CLIP_VALUE = args.clip
     Config.NOISE_MULTIPLIER = args.noise_multiplier
 
     logging.info({**to_dict(DataLoadersGenerator),
                   **to_dict(Client),
+                  **to_dict(ClientFactory),
                   **to_dict(Server),
+                  **to_dict(GepServer),
                   **to_dict(Config)})
 
 
@@ -79,7 +88,7 @@ def get_command_line_arguments(parser):
     parser.add_argument("--use-cuda", type=bool, default=True,
                         help='Use GPU. Use cpu if not')
 
-    parser.add_argument("--embed-grads", action='store_true',  help='Use GEP')
+    parser.add_argument("--embed-grads", action='store_true', help='Use GEP')
     parser.add_argument("--num-clients-public", type=int, default=10, help="Number of public clients")
     parser.add_argument("--embedding-num-bases", type=int, default=10, help="Number of basis elements")
     parser.add_argument("--clip", type=float, default=Config.CLIP_VALUE,
