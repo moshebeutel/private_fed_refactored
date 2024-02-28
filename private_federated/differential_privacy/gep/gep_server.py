@@ -46,7 +46,7 @@ class GepServer(Server):
         grad_batch_embedding: torch.Tensor = self.embed_grad(grad_batch)
         aggregated_embedded_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch_embedding)
         aggregated_grads_flattened: torch.Tensor = self.project_back_embedding(aggregated_embedded_grads_flattened)
-        self.unflatten_aggregated_grads(aggregated_grads_flattened)
+        self.store_aggregated_grads(aggregated_grads_flattened)
         del grad_batch, grad_batch_embedding
 
     def compute_subspace(self, public_gradients: torch.Tensor):

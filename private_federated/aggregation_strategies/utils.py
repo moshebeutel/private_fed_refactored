@@ -3,7 +3,7 @@ import torch
 
 def flatten_batch(batch: torch.Tensor) -> torch.Tensor:
     """
-    Flatten a batch of tensors \ grads.
+    Flatten a batch of tensors or grads.
     All dimensions are flattened except the batch dimension
     """
     return batch.reshape(batch.shape[0], -1)
@@ -34,7 +34,7 @@ def clip_params_grad_batch(params, clip_value: float):
 
     for param in params:
         p_dim = len(param.shape)
-        scaling = scaling_factors.view([batch_size] + [1]*p_dim)
+        scaling = scaling_factors.view([batch_size] + [1] * p_dim)
         param.grad_batch *= scaling
         param.grad = torch.mean(param.grad_batch, dim=0)
         param.grad_batch.mul_(0.)
@@ -45,4 +45,3 @@ def clip_grad_batch(grad_batch: torch.Tensor, clip_value: float) -> torch.Tensor
     scaling_factors: torch.Tensor = batch_norms / clip_value
     scaling_factors = torch.maximum(scaling_factors, torch.ones_like(scaling_factors))
     return torch.div(grad_batch, scaling_factors)
-

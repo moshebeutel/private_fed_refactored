@@ -12,6 +12,6 @@ def to_dict(T) -> dict:
 
 class Config:
     LOG2WANDB = True
-    EMBED_GRADS = False
+    EMBED_GRADS = True
     CLIP_VALUE = 0.1
     NOISE_MULTIPLIER = 2.01643  # 'values': [12.79182, 4.72193, 2.01643]

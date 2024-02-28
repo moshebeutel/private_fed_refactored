@@ -1,6 +1,6 @@
 import logging
 import random
-from copy import copy
+import copy
 from typing import Callable
 import torch.nn
 import wandb
@@ -30,6 +30,7 @@ class Server:
         self._grads: {str: torch.tensor} = get_net_grads(net)
         self._shapes = [g.shape for g in self._grads.values()]
         self._net: torch.nn.Module = net
+        self._best_model: torch.nn.Module = copy.deepcopy(net)
         self._device = next(net.parameters()).device
         self._sampled_clients: list[Client] = []
         self._sample_fn = random.choices if Server.SAMPLE_CLIENTS_WITH_REPLACEMENT else random.sample
@@ -47,27 +48,44 @@ class Server:
         pbar = tqdm(range(Server.NUM_ROUNDS))
         best_val_acc = 0.0
         best_round = 0
-        for i in pbar:
-            acc, loss = self.federated_round()
-            best_round = i if best_val_acc < acc else best_round
-            best_val_acc = max(best_val_acc, acc)
-            pbar.set_description(f'Round {i} finished. Acc {acc} ({best_val_acc} best acc till now,'
-                                 f' best round {best_round}), loss {loss}')
-            if Config.LOG2WANDB:
-                wandb.log({'val_acc': acc, 'val_loss': loss, 'best_epoch_validation_acc': best_val_acc,
-                           'best_round': best_round})
+        for federated_round in pbar:
+            # Train Round
+            round_val_acc, round_val_loss = self.federated_round()
 
-        acc, loss = self.eval_net(loader=self._test_loader)
+            # Best round so far?
+            if round_val_acc > best_val_acc:
+                logging.debug('Best val acc so far')
+                best_round, best_val_acc = self.update_best_round_values(round_val_acc, federated_round)
+
+            # progress bar and logging
+            pbar.set_description(f'Round {federated_round} finished.'
+                                 f' Acc {round_val_acc} '
+                                 f'({best_val_acc} best acc till now,'
+                                 f' best round {best_round}),'
+                                 f' loss {round_val_loss}')
+            if Config.LOG2WANDB:
+                wandb.log({'val_acc': round_val_acc,
+                           'val_loss': round_val_loss,
+                           'best_epoch_validation_acc': best_val_acc,
+                           'best_round': best_round})
+        # Test
+        acc, loss = self.test_net()
         logging.info(f'test loss {loss} acc {acc}')
         if Config.LOG2WANDB:
             wandb.log({'test_acc': acc, 'test_loss': loss})
+
+    def update_best_round_values(self, current_val_acc, current_federated_round):
+        best_round = current_federated_round
+        best_val_acc = current_val_acc
+        self._best_model = copy.copy(self._net)
+        return best_round, best_val_acc
 
     def federated_round(self):
         self.sample_clients()
         self.preform_train_round()
         self.aggregate_grads()
         self.update_net()
-        return self.eval_net(loader=self._val_loader)
+        return self.validate_net()
 
     def sample_clients(self):
         self._sampled_clients = self._sample_fn(self._clients, k=Server.NUM_CLIENT_AGG)
@@ -76,7 +94,8 @@ class Server:
     def preform_train_round(self):
         assert self._sampled_clients, f'Expected sampled clients. Got {len(self._sampled_clients)} clients sampled'
         for c in self._sampled_clients:
-            net_copy_for_client = copy(self._net).to(self._device)
+            net_copy_for_client = copy.copy(self._net).to(self._device)
+            init_net_grads(net_copy_for_client)
             c.train(net=net_copy_for_client)
 
     def get_sampled_clients_grads(self) -> torch.Tensor:
@@ -85,20 +104,22 @@ class Server:
         for k in self._grads.keys():
             layer_grad_batch = torch.stack([c.grads[k] for c in self._sampled_clients])
             layer_grad_batch_list.append(layer_grad_batch)
-        grad_batch = flatten_tensor(layer_grad_batch_list)
-        return grad_batch
+        grad_batch_flattened = flatten_tensor(layer_grad_batch_list)
+        return grad_batch_flattened
 
     def aggregate_grads(self):
-        grad_batch: torch.Tensor = self.get_sampled_clients_grads()
-        aggregated_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch)
-        del grad_batch
-        self.unflatten_aggregated_grads(aggregated_grads_flattened)
+        grad_batch_flattened: torch.Tensor = self.get_sampled_clients_grads()
+        aggregated_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch_flattened)
+        del grad_batch_flattened
+        self.store_aggregated_grads(aggregated_grads_flattened)
 
-    def unflatten_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
+    def store_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
         offset = 0
-        for grad_data in self._grads.values():
-            grad_data += aggregated_grads_flattened[offset:offset + grad_data.numel()].reshape(grad_data.shape)
-            offset += grad_data.numel()
+        for k in self._grads:
+            num_elements = self._grads[k].numel()
+            shape = self._grads[k].shape
+            self._grads[k] += aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
+            offset += num_elements
 
     def update_net(self):
         self._optimizer.zero_grad(set_to_none=False)
@@ -107,5 +128,8 @@ class Server:
             self._grads[k] = torch.zeros_like(p)
         self._optimizer.step()
 
-    def eval_net(self, loader: DataLoader):
-        return evaluate(net=self._net, loader=loader, criterion=self._criterion)
+    def validate_net(self):
+        return evaluate(net=self._net, loader=self._val_loader, criterion=self._criterion)
+
+    def test_net(self):
+        return evaluate(net=self._best_model, loader=self._test_loader, criterion=self._criterion)

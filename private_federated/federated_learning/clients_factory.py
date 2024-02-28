@@ -16,12 +16,11 @@ class ClientFactory:
     NUM_ALL_USERS = 900
 
     def __init__(self, dataset_factory: DatasetFactory):
-
         num_active_users = (ClientFactory.NUM_CLIENTS_PUBLIC +
                             ClientFactory.NUM_CLIENTS_PRIVATE +
                             ClientFactory.NUM_CLIENTS_VAL +
                             ClientFactory.NUM_CLIENTS_TEST)
-        num_dummy_users = ClientFactory.NUM_ALL_USERS -     num_active_users
+        num_dummy_users = ClientFactory.NUM_ALL_USERS - num_active_users
         assert num_dummy_users > 0, f'Expected num active users be less than {ClientFactory.NUM_ALL_USERS}'
 
         self.train_user_list = [('%d' % i).zfill(4) for i in range(ClientFactory.NUM_CLIENTS_PUBLIC + 1,
@@ -51,10 +50,10 @@ class ClientFactory:
                                                                ClientFactory.NUM_ALL_USERS + 1)]
 
         self.all_users_list = list(set(self.public_users +
-                                   self.train_user_list +
-                                   self.validation_user_list +
-                                   self.test_user_list +
-                                   self.dummy_users))
+                                       self.train_user_list +
+                                       self.validation_user_list +
+                                       self.test_user_list +
+                                       self.dummy_users))
 
         loaders_generator = DataLoadersGenerator(users=self.all_users_list, datasets=[dataset_factory.train_set])
         loaders = loaders_generator.users_loaders

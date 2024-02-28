@@ -12,6 +12,7 @@ from private_federated.models.model_factory import get_model_hub_names
 
 
 def populate_args(args):
+
     DatasetFactory.DATASETS_DIR = args.data_path
     DataLoadersGenerator.CLASSES_PER_USER = args.classes_per_user
     DataLoadersGenerator.BATCH_SIZE = args.batch_size

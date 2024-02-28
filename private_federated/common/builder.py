@@ -16,12 +16,11 @@ from private_federated.models import model_factory
 
 def get_aggregation_strategy(args):
     if args.clip < float('inf'):
-        C = args.clip
-        assert C > 0.0, f'Expected positive clip value. Got {C}'
+        assert args.clip > 0.0, f'Expected positive clip value. Got {args.clip}'
         if args.noise_multiplier > 0.0:
-            strategy = DpSgdAggregationStrategy(clip_value=C, noise_multiplier=args.noise_multiplier)
+            strategy = DpSgdAggregationStrategy(clip_value=args.clip, noise_multiplier=args.noise_multiplier)
         else:
-            strategy = AverageClipStrategy(clip_value=C)
+            strategy = AverageClipStrategy(clip_value=args.clip)
     else:
         assert args.noise_multiplier == 0.0, (f'No clip given. '
                                               f'Expected non-private but got noise multiplier {args.noise_multiplier}')

@@ -6,10 +6,6 @@ import private_federated
 import private_federated.common
 from private_federated.common import builder
 from private_federated.common import utils
-from private_federated.common.config import Config
-from private_federated.data.loaders_generator import DataLoadersGenerator
-from private_federated.differential_privacy.gep.gep_server import GepServer
-from private_federated.federated_learning.clients_factory import ClientFactory
 
 
 def set_seed(seed, cudnn_enabled=True):
@@ -42,20 +38,22 @@ def sweep_train(sweep_id, args, config=None):
         config.update({'sweep_id': sweep_id})
         logging.info(config)
         set_seed(30)
+
         args.classes_per_user = config.classes_per_user
-        DataLoadersGenerator.CLASSES_PER_USER = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
-        Config.NOISE_MULTIPLIER = config.noise_multiplier
         args.clip = config.clip
-        Config.CLIP_VALUE = config.clip
         args.embed_grads = config.embed_grads
-        Config.EMBED_GRADS = config.embed_grads
-        GepServer.NUM_BASIS_ELEMENTS = config.gep_num_bases
         args.embedding_num_bases = config.gep_num_bases
         args.num_clients_public = config.num_clients_public
-        ClientFactory.NUM_CLIENTS_PUBLIC = config.num_clients_public
-        run_name = f'Embed grads {args.embed_grads},Noise mult. {args.noise_multiplier},Clip {args.clip},Num Basis {args.embedding_num_bases}, Num Public {args.num_clients_public}'
-        # run_name = f'Embed grads {args.embed_grads},Noise mult. {args.noise_multiplier},Clip {args.clip}'
+
+        run_name = (f'Embed Grads {args.embed_grads},'
+                    f'Noise Mult. {args.noise_multiplier},'
+                    f'Clip Value {args.clip}')
+        if args.embed_grads:
+            run_name += (f','
+                         f'Num Basis Elements {args.embedding_num_bases},'
+                         f'Num Public Clients {args.num_clients_public}')
+
         logging.info(run_name)
         print('\n'.join(run_name.split(',')))
         wandb.run.name = run_name
@@ -86,7 +84,7 @@ def run_sweep(args):
             'values': [True]
         },
         'clip': {
-            'values': [0.001, 0.1]
+            'values': [0.0001, 1.0]
         },
         # 'seed': {
         #     'values': [20]
@@ -103,7 +101,7 @@ def run_sweep(args):
             'values': [10, 100]
         },
         'classes_per_user': {
-            'values': [2, 10]
+            'values': [2]
         },
         # 'clients_internal_epochs': {
         #     'values': [1, 5]
@@ -112,7 +110,7 @@ def run_sweep(args):
         #     'values': [0]
         # },
         'gep_num_bases': {
-            'values': [10, 100]
+            'values': [10]
         }
     })
 
@@ -125,5 +123,5 @@ def run_sweep(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
-    args = private_federated.common.utils.get_command_line_arguments(parser)
-    run_sweep(args)
+    command_line_args = private_federated.common.utils.get_command_line_arguments(parser)
+    run_sweep(command_line_args)
