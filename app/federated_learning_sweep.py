@@ -6,24 +6,7 @@ import private_federated
 import private_federated.common
 from private_federated.common import builder
 from private_federated.common import utils
-
-
-def set_seed(seed, cudnn_enabled=True):
-    import numpy as np
-    import random
-    import torch
-
-    np.random.seed(seed)
-    random.seed(seed)
-
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-
-    torch.backends.cudnn.enabled = cudnn_enabled
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+from private_federated.train.utils import set_seed
 
 
 def single_train(args):
@@ -37,19 +20,25 @@ def sweep_train(sweep_id, args, config=None):
         config = wandb.config
         config.update({'sweep_id': sweep_id})
         logging.info(config)
-        set_seed(30)
+        set_seed(config.seed)
 
+        args.model_name = config.model_name
+        args.num_clients_agg = config.num_clients_agg
+        args.num_clients_total = config.num_private_clients
+        args.num_clients_private = config.num_private_clients
         args.classes_per_user = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
         args.embed_grads = config.embed_grads
-        args.embedding_num_bases = config.gep_num_bases
-        args.num_clients_public = config.num_clients_public
 
-        run_name = (f'Embed Grads {args.embed_grads},'
+        run_name = (f'Model Name: {args.model_name},'
+                    f'Num Clients Agg: {args.num_clients_agg}'
                     f'Noise Mult. {args.noise_multiplier},'
                     f'Clip Value {args.clip}')
         if args.embed_grads:
+            args.embedding_num_bases = config.gep_num_bases
+            args.num_clients_public = config.num_clients_public
+            args.num_clients_total += args.num_clients_public
             run_name += (f','
                          f'Num Basis Elements {args.embedding_num_bases},'
                          f'Num Public Clients {args.num_clients_public}')
@@ -66,30 +55,41 @@ def run_sweep(args):
     sweep_config = {
         'method': 'grid'
     }
-    parameters_dict = {}
-
-    sweep_config['parameters'] = parameters_dict
-    metric = {
-        'name': 'best_epoch_validation_acc',
-        'goal': 'maximize'
-    }
-
-    sweep_config['metric'] = metric
-
-    parameters_dict.update({
+    parameters_dict = {
         'noise_multiplier': {
-            'values': [12.79182, 4.72193, 2.01643, 0.0]
+            'values': [12.79182, 0.0]
+            # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
             'values': [True]
         },
-        'clip': {
-            'values': [0.0001, 1.0]
+        'num_clients_agg': {
+            'values': [10, 100]
         },
-        # 'seed': {
-        #     'values': [20]
-        #     # 'values': [20, 40, 60]
-        # },
+        'num_clients_public': {
+            'values': [100]
+        },
+        'gep_num_bases': {
+            'values': [80]
+        },
+        'clip': {
+            'values': [0.0001]
+        },
+        'seed': {
+            'values': [20]
+        },
+        'num_private_clients': {
+            'values': [700]
+        },
+        'model_name': {
+            'values': ['resnet8', 'resnet20', 'resnet44']
+        },
+        'classes_per_user': {
+            'values': [2]
+        }
+    }
+
+    parameters_dict.update({
         # 'sample_with_replacement': {
         #     'values': [0, 1]
         # },
@@ -97,24 +97,20 @@ def run_sweep(args):
         #     'values': [50]
         #     # 'values': [10, 50]
         # },
-        'num_clients_public': {
-            'values': [10, 100]
-        },
-        'classes_per_user': {
-            'values': [2]
-        },
         # 'clients_internal_epochs': {
         #     'values': [1, 5]
         # },
         # 'use_gp': {
         #     'values': [0]
         # },
-        'gep_num_bases': {
-            'values': [10]
-        }
     })
+    sweep_config['parameters'] = parameters_dict
+    metric = {
+        'name': 'best_epoch_validation_acc',
+        'goal': 'maximize'
+    }
 
-    # parameters_dict.update({'epsilon': {'values': split_to_floats(args.epsilon_values)}})
+    sweep_config['metric'] = metric
 
     sweep_id = wandb.sweep(sweep_config, project="pytorch-sweeps-demo")
 

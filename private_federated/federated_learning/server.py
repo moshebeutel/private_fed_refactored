@@ -9,12 +9,13 @@ from tqdm import tqdm
 from private_federated.common.config import Config
 from private_federated.differential_privacy.gep.utils import flatten_tensor
 from private_federated.federated_learning.client import Client
-from private_federated.train.utils import init_net_grads, get_net_grads, evaluate
+from private_federated.train.utils import evaluate
+from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
     NUM_ROUNDS = 100
-    NUM_CLIENT_AGG: int = 50
+    NUM_CLIENT_AGG: int = 100
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
     WEIGHT_DECAY: float = 1e-3
@@ -26,7 +27,7 @@ class Server:
                  test_loader: DataLoader,
                  aggregating_strategy: Callable[[torch.tensor], torch.tensor]):
         self._clients: list[Client] = clients
-        init_net_grads(net)
+        zero_net_grads(net)
         self._grads: {str: torch.tensor} = get_net_grads(net)
         self._shapes = [g.shape for g in self._grads.values()]
         self._net: torch.nn.Module = net
@@ -80,7 +81,7 @@ class Server:
         self._best_model = copy.copy(self._net)
         return best_round, best_val_acc
 
-    def federated_round(self):
+    def federated_round(self) -> tuple[float, float]:
         self.sample_clients()
         self.preform_train_round()
         self.aggregate_grads()
@@ -95,7 +96,7 @@ class Server:
         assert self._sampled_clients, f'Expected sampled clients. Got {len(self._sampled_clients)} clients sampled'
         for c in self._sampled_clients:
             net_copy_for_client = copy.copy(self._net).to(self._device)
-            init_net_grads(net_copy_for_client)
+            zero_net_grads(net_copy_for_client)
             c.train(net=net_copy_for_client)
 
     def get_sampled_clients_grads(self) -> torch.Tensor:
@@ -109,14 +110,14 @@ class Server:
 
     def aggregate_grads(self):
         grad_batch_flattened: torch.Tensor = self.get_sampled_clients_grads()
-        aggregated_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch_flattened)
+        aggregated_flattened_grads: torch.Tensor = self._aggregating_strategy(grad_batch_flattened)
         del grad_batch_flattened
-        self.store_aggregated_grads(aggregated_grads_flattened)
+        self.store_aggregated_grads(aggregated_flattened_grads)
 
     def store_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
         offset = 0
         for k in self._grads:
-            num_elements = self._grads[k].numel()
+            num_elements: int = self._grads[k].numel()
             shape = self._grads[k].shape
             self._grads[k] += aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
             offset += num_elements
@@ -128,8 +129,8 @@ class Server:
             self._grads[k] = torch.zeros_like(p)
         self._optimizer.step()
 
-    def validate_net(self):
+    def validate_net(self) -> tuple[float, float]:
         return evaluate(net=self._net, loader=self._val_loader, criterion=self._criterion)
 
-    def test_net(self):
+    def test_net(self) -> tuple[float, float]:
         return evaluate(net=self._best_model, loader=self._test_loader, criterion=self._criterion)

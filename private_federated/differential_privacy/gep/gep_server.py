@@ -42,12 +42,16 @@ class GepServer(Server):
         self._sampled_clients = self._sampled_clients[len(self._public_clients):]
 
         # get new grads
-        grad_batch: torch.Tensor = self.get_sampled_clients_grads()
-        grad_batch_embedding: torch.Tensor = self.embed_grad(grad_batch)
-        aggregated_embedded_grads_flattened: torch.Tensor = self._aggregating_strategy(grad_batch_embedding)
-        aggregated_grads_flattened: torch.Tensor = self.project_back_embedding(aggregated_embedded_grads_flattened)
-        self.store_aggregated_grads(aggregated_grads_flattened)
-        del grad_batch, grad_batch_embedding
+        grad_batch_flattened: torch.Tensor = self.get_sampled_clients_grads()
+        grad_batch_flattened_embedded: torch.Tensor = self.embed_grad(grad_batch_flattened)
+
+        # aggregate grads
+        aggregated_embedded_flattened_grads: torch.Tensor = self._aggregating_strategy(grad_batch_flattened_embedded)
+
+        # reconstruct and reshape grads
+        reconstructed_grads_flattened: torch.Tensor = self.project_back_embedding(aggregated_embedded_flattened_grads)
+        self.store_aggregated_grads(reconstructed_grads_flattened)
+        del grad_batch_flattened, grad_batch_flattened_embedded
 
     def compute_subspace(self, public_gradients: torch.Tensor):
         num_bases: int

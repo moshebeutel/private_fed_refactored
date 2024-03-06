@@ -1,15 +1,16 @@
 import logging
 import torch
-from private_federated.aggregation_strategies.average_clip_strategy import AverageClipStrategy
+from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.aggregation_strategies.utils import clip_grad_batch
 
 
-class DpSgdAggregationStrategy(AverageClipStrategy):
+class DpSgdAggregationStrategy(AverageStrategy):
 
     def __init__(self, clip_value: float, noise_multiplier: float):
-        super().__init__(clip_value=clip_value)
+        super().__init__()
         self._noise_multiplier = noise_multiplier
         self._noise_std = noise_multiplier * clip_value
+        self._C = clip_value
 
     def __repr__(self):
         return f"DpSgdAggregationStrategy(clip_value={self._C}, noise_multiplier={self._noise_multiplier})"

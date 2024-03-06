@@ -1,9 +1,8 @@
 import torch.nn
-from torch.nn import CrossEntropyLoss
 
 
-def evaluate(net, loader, criterion):
-    eval_accuracy, total, eval_loss = 0, 0, 0.0
+def evaluate(net, loader, criterion) -> tuple[float, float]:
+    eval_accuracy, total, eval_loss = 0.0, 0.0, 0.0
     device = next(net.parameters()).device
     net.eval()
     with torch.no_grad():
@@ -22,15 +21,19 @@ def evaluate(net, loader, criterion):
     return eval_accuracy, eval_loss
 
 
-def get_net_parameters(net: torch.nn.Module):
-    return [val.cpu().numpy() for _, val in net.state_dict().items()]
+def set_seed(seed, cudnn_enabled=True):
+    import numpy as np
+    import random
+    import torch
 
+    np.random.seed(seed)
+    random.seed(seed)
 
-def init_net_grads(net: torch.nn.Module, value: float = 0.0):
-    for p in net.parameters():
-        p.grad = torch.ones_like(p) * value
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
-
-def get_net_grads(net: torch.nn.Module):
-    assert next(net.parameters()).grad is not None, f'Expected grads initiated'
-    return {name: param.grad.data for (name, param) in net.named_parameters()}
+    torch.backends.cudnn.enabled = cudnn_enabled
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
