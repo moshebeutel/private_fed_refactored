@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-
 from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.common.config import Config, to_dict

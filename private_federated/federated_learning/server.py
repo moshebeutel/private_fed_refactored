@@ -14,7 +14,7 @@ from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
-    NUM_ROUNDS = 100
+    NUM_ROUNDS = 50
     NUM_CLIENT_AGG: int = 100
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
@@ -100,7 +100,7 @@ class Server:
             c.train(net=net_copy_for_client)
 
     def get_sampled_clients_grads(self) -> torch.Tensor:
-        # collect private gradients embed onto subspace and aggregate
+        # collect private gradients
         layer_grad_batch_list = []
         for k in self._grads.keys():
             layer_grad_batch = torch.stack([c.grads[k] for c in self._sampled_clients])

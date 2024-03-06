@@ -50,11 +50,12 @@ class ClientFactory:
                                                                ClientFactory.NUM_CLIENTS_TEST + 1,
                                                                ClientFactory.NUM_ALL_USERS + 1)]
 
-        self.all_users_list = list(set(self.public_users +
-                                       self.train_user_list +
-                                       self.validation_user_list +
-                                       self.test_user_list +
-                                       self.dummy_users))
+        self.all_users_list = list(self.public_users +
+                                   self.train_user_list +
+                                   self.validation_user_list +
+                                   self.test_user_list +
+                                   self.dummy_users)
+        assert len(set(self.all_users_list)) == len(self.all_users_list), f"duplicate users found: {self.all_users_list}"
 
         loaders_generator = DataLoadersGenerator(users=self.all_users_list, datasets=[dataset_factory.train_set])
         loaders = loaders_generator.users_loaders

@@ -25,13 +25,13 @@ class DpSgdAggregationStrategy(AverageStrategy):
                       f' clipped grads shape: {clipped_grad_batch.shape}'
                       f' grad_batch shape: {grad_batch.shape}')
 
-        logging.debug(f'dp_noise mean norm: {torch.mean(torch.norm(dp_noise, dim=1))}'
-                      f' clipped grads mean norm: {torch.mean(torch.norm(clipped_grad_batch, dim=1))}'
-                      f' grad_batch mean norm: {torch.mean(torch.norm(grad_batch, dim=1))}')
+        logging.debug(f'dp_noise mean norm: {torch.mean(torch.linalg.vector_norm(dp_noise, dim=1))}'
+                      f' clipped grads mean norm: {torch.mean(torch.linalg.vector_norm(clipped_grad_batch, dim=1))}'
+                      f' grad_batch mean norm: {torch.mean(torch.linalg.vector_norm(grad_batch, dim=1))}')
 
-        logging.debug(f'mean dp_noise max : {torch.absolute(torch.mean(dp_noise, dim=0)).max()}'
-                      f' mean clipped grads max: {torch.absolute(torch.mean(clipped_grad_batch, dim=0)).max()}'
-                      f' mean grad_batch max: {torch.absolute(torch.mean(grad_batch, dim=0)).max()}')
+        logging.debug(f'mean dp_noise max amplitude: {torch.absolute(torch.mean(dp_noise, dim=0)).max()}'
+                      f' mean clipped grads max amplitude: {torch.absolute(torch.mean(clipped_grad_batch, dim=0)).max()}'
+                      f' mean grad_batch max amplitude: {torch.absolute(torch.mean(grad_batch, dim=0)).max()}')
 
         average_clipped_grads = torch.mean(clipped_grad_batch + dp_noise, dim=0)
 

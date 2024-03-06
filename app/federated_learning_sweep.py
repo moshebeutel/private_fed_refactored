@@ -30,6 +30,8 @@ def sweep_train(sweep_id, args, config=None):
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
         args.embed_grads = config.embed_grads
+        args.num_clients_public = config.num_clients_public
+        args.num_clients_total += args.num_clients_public
 
         run_name = (f'Model Name: {args.model_name},'
                     f'Num Clients Agg: {args.num_clients_agg}'
@@ -37,8 +39,7 @@ def sweep_train(sweep_id, args, config=None):
                     f'Clip Value {args.clip}')
         if args.embed_grads:
             args.embedding_num_bases = config.gep_num_bases
-            args.num_clients_public = config.num_clients_public
-            args.num_clients_total += args.num_clients_public
+
             run_name += (f','
                          f'Num Basis Elements {args.embedding_num_bases},'
                          f'Num Public Clients {args.num_clients_public}')
@@ -57,14 +58,14 @@ def run_sweep(args):
     }
     parameters_dict = {
         'noise_multiplier': {
-            'values': [12.79182, 0.0]
+            'values': [25.0, 12.79182, 0.0]
             # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
-            'values': [True]
+            'values': [False]
         },
         'num_clients_agg': {
-            'values': [10, 100]
+            'values': [5]
         },
         'num_clients_public': {
             'values': [100]
@@ -73,16 +74,16 @@ def run_sweep(args):
             'values': [80]
         },
         'clip': {
-            'values': [0.0001]
+            'values': [1.0]
         },
         'seed': {
-            'values': [20]
+            'values': [50]
         },
         'num_private_clients': {
             'values': [700]
         },
         'model_name': {
-            'values': ['resnet8', 'resnet20', 'resnet44']
+            'values': ['resnet20']
         },
         'classes_per_user': {
             'values': [2]
