@@ -14,7 +14,7 @@ from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
-    NUM_ROUNDS = 50
+    NUM_ROUNDS = 70
     NUM_CLIENT_AGG: int = 100
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001

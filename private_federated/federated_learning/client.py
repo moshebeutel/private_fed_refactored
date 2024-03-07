@@ -5,7 +5,7 @@ from private_federated.models.utils import get_net_grads
 
 
 class Client:
-    INTERNAL_EPOCHS = 1
+    INTERNAL_EPOCHS = 5
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
     OPTIMIZER_PARAMS = {'lr': 1e-3, 'weight_decay': 1e-3, 'momentum': 0.9}
@@ -33,7 +33,7 @@ class Client:
                 loss.backward()
 
                 for i, p in net.named_parameters():
-                    self._grads[i] += p.grad.data
+                    self._grads[i] += (p.grad.data / float(Client.INTERNAL_EPOCHS))
 
                 optimizer.step()
 

@@ -16,6 +16,7 @@ def populate_args(args):
     DataLoadersGenerator.BATCH_SIZE = args.batch_size
 
     Client.INTERNAL_EPOCHS = args.clients_internal_epochs
+    Client.OPTIMIZER_PARAMS['lr'] = args.client_learning_rate
 
     ClientFactory.NUM_ALL_USERS = args.num_clients_total
     ClientFactory.NUM_CLIENTS_PRIVATE = args.num_clients_private
@@ -24,7 +25,7 @@ def populate_args(args):
     Server.NUM_ROUNDS = args.num_rounds
     Server.NUM_CLIENT_AGG = args.num_clients_agg
     Server.SAMPLE_CLIENTS_WITH_REPLACEMENT = args.sample_with_replacement
-    Server.LEARNING_RATE = args.learning_rate
+    Server.LEARNING_RATE = args.server_learning_rate
     Server.WEIGHT_DECAY = args.weight_decay
     Server.MOMENTUM = args.momentum
 
@@ -84,8 +85,10 @@ def get_command_line_arguments(parser):
                         help="Number of federated_learning training rounds in federation")
     parser.add_argument("--batch-size", type=int, default=DataLoadersGenerator.BATCH_SIZE,
                         help="Number of images in train batch")
-    parser.add_argument("--learning-rate", type=float, default=Server.LEARNING_RATE,
+    parser.add_argument("--server-learning-rate", type=float, default=Server.LEARNING_RATE,
                         help="Gradients update factor each round")
+    parser.add_argument("--client-learning-rate", type=float, default=Client.OPTIMIZER_PARAMS['lr'],
+                        help="Gradients update factor each internal round")
     parser.add_argument("--weight-decay", type=float, default="1e-3", help="Optimizer weight decay parameters")
     parser.add_argument("--momentum", type=float, default="0.9", help="Optimizer momentum parameter")
 

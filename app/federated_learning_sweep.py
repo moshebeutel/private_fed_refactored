@@ -32,11 +32,17 @@ def sweep_train(sweep_id, args, config=None):
         args.embed_grads = config.embed_grads
         args.num_clients_public = config.num_clients_public
         args.num_clients_total += args.num_clients_public
+        args.client_learning_rate = config.client_learning_rate
+        args.server_learning_rate = config.server_learning_rate
+        args.clients_internal_epochs = config.clients_internal_epochs
 
         run_name = (f'Model Name: {args.model_name},'
                     f'Num Clients Agg: {args.num_clients_agg}'
                     f'Noise Mult. {args.noise_multiplier},'
-                    f'Clip Value {args.clip}')
+                    f'Clip Value {args.clip},'
+                    f'Internal Epochs {args.clients_internal_epochs},'
+                    f'Server Learning Rate {args.server_learning_rate},'
+                    f'Client Learning Rate {args.client_learning_rate}')
         if args.embed_grads:
             args.embedding_num_bases = config.gep_num_bases
 
@@ -58,14 +64,14 @@ def run_sweep(args):
     }
     parameters_dict = {
         'noise_multiplier': {
-            'values': [25.0, 12.79182, 0.0]
+            'values': [25.0, 0.0]
             # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
-            'values': [False]
+            'values': [False, True]
         },
         'num_clients_agg': {
-            'values': [5]
+            'values': [20]
         },
         'num_clients_public': {
             'values': [100]
@@ -74,7 +80,7 @@ def run_sweep(args):
             'values': [80]
         },
         'clip': {
-            'values': [1.0]
+            'values': [1.0, 0.001]
         },
         'seed': {
             'values': [50]
@@ -87,19 +93,22 @@ def run_sweep(args):
         },
         'classes_per_user': {
             'values': [2]
+        },
+        'clients_internal_epochs': {
+            'values': [1, 5]
+        },
+        'client_learning_rate': {
+            'values': [0.001, 1.0]
+        },
+        'server_learning_rate': {
+            'values': [0.001, 1.0]
         }
+
     }
 
     parameters_dict.update({
         # 'sample_with_replacement': {
         #     'values': [0, 1]
-        # },
-        # 'num_clients_agg': {
-        #     'values': [50]
-        #     # 'values': [10, 50]
-        # },
-        # 'clients_internal_epochs': {
-        #     'values': [1, 5]
         # },
         # 'use_gp': {
         #     'values': [0]
