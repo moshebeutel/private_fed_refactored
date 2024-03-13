@@ -1,12 +1,12 @@
 from torch.utils.data import Dataset
-from private_federated.data.utils import gen_random_loaders
+from private_federated.data.random_data_split import gen_random_loaders
 
 
 class DataLoadersGenerator:
     CLASSES_PER_USER = 10
     BATCH_SIZE = 16
 
-    def __init__(self, users: list[int], datasets: list[Dataset]):
+    def __init__(self, users: list[str], datasets: list[Dataset]):
         loaders, cls_partitions = gen_random_loaders(num_users=len(users),
                                                      bz=DataLoadersGenerator.BATCH_SIZE,
                                                      classes_per_user=DataLoadersGenerator.CLASSES_PER_USER,
@@ -28,3 +28,5 @@ class DataLoadersGenerator:
     @property
     def users_class_partitions(self):
         return self._users_class_partitions
+
+

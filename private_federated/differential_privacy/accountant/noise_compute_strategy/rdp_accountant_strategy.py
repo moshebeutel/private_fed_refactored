@@ -13,6 +13,7 @@ class RdpAccountantStrategy:
         current_epsilon = 100.000
         noise_multiplier_upper_bound = self._noise_multiplier_upper_bound
         noise_multiplier_lower_bound = self._noise_multiplier_lower_bound
+        noise_multiplier: float = 0.0
         while abs(current_epsilon - target_epsilon) > self._epsilon_proximity:
             noise_multiplier = (noise_multiplier_upper_bound + noise_multiplier_lower_bound) / 2.0
             event = dp_accounting.SelfComposedDpEvent(dp_accounting.GaussianDpEvent(noise_multiplier=noise_multiplier),

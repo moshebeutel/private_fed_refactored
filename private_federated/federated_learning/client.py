@@ -1,7 +1,7 @@
 import torch.nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
-from private_federated.train.utils import get_net_grads
+from private_federated.models.utils import get_net_grads
 
 
 class Client:
@@ -33,7 +33,7 @@ class Client:
                 loss.backward()
 
                 for i, p in net.named_parameters():
-                    self._grads[i] += p.grad.data
+                    self._grads[i] += (p.grad.data / float(Client.INTERNAL_EPOCHS))
 
                 optimizer.step()
 

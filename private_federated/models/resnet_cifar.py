@@ -90,8 +90,7 @@ class ResNet(nn.Module):
                 nn.GroupNorm(gn_groups, self.inplanes, affine=False),  # nn.BatchNorm2d(self.inplanes, affine=False),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes
         for _ in range(1, blocks):
             layers.append(block(planes, planes))
@@ -120,4 +119,60 @@ def resnet20(num_classes=10):
     """
     model = ResNet(BasicBlock, [3, 3, 3], num_classes=num_classes)
 
+    return model
+
+
+def resnet32():
+    """Constructs a ResNet-32 model.
+
+    """
+    model = ResNet(BasicBlock, [5, 5, 5])
+    return model
+
+
+def resnet44():
+    """Constructs a ResNet-44 model.
+
+    """
+    model = ResNet(BasicBlock, [7, 7, 7])
+    return model
+
+
+def resnet56():
+    """Constructs a ResNet-56 model.
+
+    """
+    model = ResNet(BasicBlock, [9, 9, 9])
+    return model
+
+
+def resnet110():
+    """Constructs a ResNet-110 model.
+
+    """
+    model = ResNet(BasicBlock, [18, 18, 18])
+    return model
+
+
+def resnet1202():
+    """Constructs a ResNet-1202 model.
+
+    """
+    model = ResNet(BasicBlock, [200, 200, 200])
+    return model
+
+
+def resnet8():
+    """Constructs a ResNet-8 model.
+
+    """
+    model = ResNet(BasicBlock, [1, 1, 1])
+    return model
+
+
+def resnet14():
+    """Constructs a ResNet-14 model.
+
+    """
+    model = ResNet(BasicBlock, [2, 2, 2])
     return model
