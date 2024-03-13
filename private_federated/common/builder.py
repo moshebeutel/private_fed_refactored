@@ -14,6 +14,10 @@ from private_federated.federated_learning.server import Server
 from private_federated.models.model_factory import ModelFactory
 
 
+# def create_gep_strategy():
+#     GepNoResidualAggregationStrategy(GEP(num_bases, batch_size, clip0, clip1))
+
+
 def get_aggregation_strategy(args):
     """
     Aggregation strategy factory method
