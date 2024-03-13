@@ -2,6 +2,7 @@ import torch.nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from private_federated.models.utils import get_net_grads
+from private_federated.train.utils import evaluate
 
 
 class Client:
@@ -44,6 +45,9 @@ class Client:
                 epoch_loss += batch_loss
             #     print(f'    client {self._id} batch loss {batch_loss/batch_size}')
             # print(f'client {self._id} epoch {epoch} epoch loss {epoch_loss/epoch_size}')
+
+    def evaluate(self, net: torch.nn.Module):
+        return evaluate(net=net, loader=self._loader, criterion=Client.CRITERION)
 
     @property
     def grads(self):

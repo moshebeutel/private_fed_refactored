@@ -24,14 +24,12 @@ def sweep_train(sweep_id, args, config=None):
 
         args.model_name = config.model_name
         args.num_clients_agg = config.num_clients_agg
-        args.num_clients_total = config.num_private_clients
         args.num_clients_private = config.num_private_clients
         args.classes_per_user = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
         args.embed_grads = config.embed_grads
         args.num_clients_public = config.num_clients_public
-        args.num_clients_total += args.num_clients_public
         args.client_learning_rate = config.client_learning_rate
         args.server_learning_rate = config.server_learning_rate
         args.clients_internal_epochs = config.clients_internal_epochs

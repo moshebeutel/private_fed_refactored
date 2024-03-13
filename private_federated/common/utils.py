@@ -18,7 +18,7 @@ def populate_args(args):
     Client.INTERNAL_EPOCHS = args.clients_internal_epochs
     Client.OPTIMIZER_PARAMS['lr'] = args.client_learning_rate
 
-    ClientFactory.NUM_ALL_USERS = args.num_clients_total
+    # ClientFactory.NUM_ALL_USERS = args.num_clients_total
     ClientFactory.NUM_CLIENTS_PRIVATE = args.num_clients_private
     ClientFactory.NUM_CLIENTS_PUBLIC = args.num_clients_public
 

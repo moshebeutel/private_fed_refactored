@@ -46,11 +46,15 @@ def get_server_params(server_type_name: str,
     :param aggregation_strategy_factory_method: Aggregation strategy factory method
     """
     clients = clients_factory.private_train_clients
+    val_clients = clients_factory.validation_clients
+    test_clients = clients_factory.test_clients
     net = models_factory_method()
     server_test_loader, server_val_loader = get_loaders(dataset_factory)
     strategy = aggregation_strategy_factory_method()
     logging.info(f'Aggregation strategy: {strategy.__class__.__name__}')
     server_params = {'clients': clients,
+                     'val_clients': val_clients,
+                     'test_clients': test_clients,
                      'net': net,
                      'val_loader': server_val_loader,
                      'test_loader': server_test_loader,

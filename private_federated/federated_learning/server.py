@@ -14,19 +14,24 @@ from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
-    NUM_ROUNDS = 70
-    NUM_CLIENT_AGG: int = 100
+    NUM_ROUNDS = 30
+    NUM_CLIENT_AGG: int = 20
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
-    LEARNING_RATE: float = 0.0001
+    LEARNING_RATE: float = 0.001
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
 
-    def __init__(self, clients: list[Client],
+    def __init__(self,
+                 train_clients: list[Client],
+                 val_clients: list[Client],
+                 test_clients: list[Client],
                  net: torch.nn.Module,
                  val_loader: DataLoader,
                  test_loader: DataLoader,
                  aggregating_strategy: Callable[[torch.tensor], torch.tensor]):
-        self._clients: list[Client] = clients
+        self._train_clients: list[Client] = train_clients
+        self._val_clients: list[Client] = val_clients
+        self._test_clients: list[Client] = test_clients
         zero_net_grads(net)
         self._grads: {str: torch.tensor} = get_net_grads(net)
         self._shapes = [g.shape for g in self._grads.values()]
@@ -89,7 +94,7 @@ class Server:
         return self.validate_net()
 
     def sample_clients(self):
-        self._sampled_clients = self._sample_fn(self._clients, k=Server.NUM_CLIENT_AGG)
+        self._sampled_clients = self._sample_fn(self._train_clients, k=Server.NUM_CLIENT_AGG)
         logging.debug(f'sampled clients {str([c.cid for c in self._sampled_clients])}')
 
     def preform_train_round(self):
@@ -130,7 +135,16 @@ class Server:
         self._optimizer.step()
 
     def validate_net(self) -> tuple[float, float]:
-        return evaluate(net=self._net, loader=self._val_loader, criterion=self._criterion)
+        return self.evaluate_net(clients=self._val_clients)
 
     def test_net(self) -> tuple[float, float]:
-        return evaluate(net=self._best_model, loader=self._test_loader, criterion=self._criterion)
+        return self.evaluate_net(clients=self._test_clients)
+
+    @torch.no_grad()
+    def evaluate_net(self, clients: list[Client]) -> tuple[float, float]:
+        total_accuracy, total_loss = 0.0, 0.0
+        for c in clients:
+            acc, loss = c.evaluate(net=self._net)
+            total_accuracy += (acc / len(self._test_clients))
+            total_loss += (loss / len(self._test_clients))
+        return total_accuracy, total_loss

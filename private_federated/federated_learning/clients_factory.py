@@ -6,11 +6,11 @@ from private_federated.federated_learning.client import Client
 
 
 class ClientFactory:
-    NUM_CLIENTS_PUBLIC = 2
-    NUM_CLIENTS_PRIVATE = 3
-    NUM_CLIENTS_VAL = 0
-    NUM_CLIENTS_TEST = 0
-    NUM_ALL_USERS = 5
+    NUM_CLIENTS_PUBLIC = 100
+    NUM_CLIENTS_PRIVATE = 70
+    NUM_CLIENTS_VAL = 5
+    NUM_CLIENTS_TEST = 25
+    NUM_ALL_USERS = 200
 
     def __init__(self, dataset_factory: DatasetFactory):
         assert ClientFactory.NUM_CLIENTS_PRIVATE >= Server.NUM_CLIENT_AGG, \
