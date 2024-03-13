@@ -74,7 +74,8 @@ class Server:
                            'val_loss': round_val_loss,
                            'best_epoch_validation_acc': best_val_acc,
                            'best_round': best_round})
-        # Test
+        # Test the best model achieved
+        self._net = copy.copy(self._best_model).to(self._device)
         acc, loss = self.test_net()
         logging.info(f'test loss {loss} acc {acc}')
         if Config.LOG2WANDB:
@@ -145,6 +146,6 @@ class Server:
         total_accuracy, total_loss = 0.0, 0.0
         for c in clients:
             acc, loss = c.evaluate(net=self._net)
-            total_accuracy += (acc / len(self._test_clients))
-            total_loss += (loss / len(self._test_clients))
+            total_accuracy += (acc / len(clients))
+            total_loss += (loss / len(clients))
         return total_accuracy, total_loss
