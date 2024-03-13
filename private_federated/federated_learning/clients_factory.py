@@ -6,11 +6,17 @@ from private_federated.federated_learning.client import Client
 
 
 class ClientFactory:
-    NUM_CLIENTS_PUBLIC = 100
-    NUM_CLIENTS_PRIVATE = 70
-    NUM_CLIENTS_VAL = 5
-    NUM_CLIENTS_TEST = 25
-    NUM_ALL_USERS = 200
+    # NUM_CLIENTS_PUBLIC = 100
+    # NUM_CLIENTS_PRIVATE = 700
+    # NUM_CLIENTS_VAL = 50
+    # NUM_CLIENTS_TEST = 250
+    # NUM_ALL_USERS = 1100
+
+    NUM_CLIENTS_PUBLIC = 3
+    NUM_CLIENTS_PRIVATE = 7
+    NUM_CLIENTS_VAL = 1
+    NUM_CLIENTS_TEST = 1
+    NUM_ALL_USERS = 12
 
     def __init__(self, dataset_factory: DatasetFactory):
         assert ClientFactory.NUM_CLIENTS_PRIVATE >= Server.NUM_CLIENT_AGG, \
@@ -57,9 +63,11 @@ class ClientFactory:
                                    self.dummy_users)
         assert len(set(self.all_users_list)) == len(self.all_users_list), f"duplicate users found: {self.all_users_list}"
 
-        loaders_generator = DataLoadersGenerator(users=self.all_users_list, datasets=[dataset_factory.train_set])
-        loaders = loaders_generator.users_loaders
-        self._clients = [Client(cid=cid, loader=loaders[cid]['train']) for cid in loaders]
+        loaders_generator = DataLoadersGenerator(users=self.all_users_list, datasets=[dataset_factory.train_set,
+                                                                                      dataset_factory.val_set,
+                                                                                      dataset_factory.test_set])
+
+        self._create_clients(loaders_generator)
         self._public_clients = [c for c in self._clients if c.cid in self.public_users]
         self._private_train_clients = [c for c in self._clients if c.cid in self.train_user_list]
         self._validation_clients = [c for c in self._clients if c.cid in self.validation_user_list]
@@ -71,6 +79,10 @@ class ClientFactory:
         ClientFactory.log_user_list('Test Users', self.test_user_list)
         ClientFactory.log_user_list('Dummy Users', self.dummy_users)
         ClientFactory.log_user_list('All Users', self.all_users_list)
+
+    def _create_clients(self, loaders_generator):
+        loaders = loaders_generator.users_loaders
+        self._clients = [Client(cid=cid, loader=loaders[cid]) for cid in loaders]
 
     @staticmethod
     def log_user_list(list_name: str, user_list: list[str]):

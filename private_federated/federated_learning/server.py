@@ -14,7 +14,7 @@ from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
-    NUM_ROUNDS = 30
+    NUM_ROUNDS = 1
     NUM_CLIENT_AGG: int = 20
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.001
@@ -36,7 +36,7 @@ class Server:
         self._grads: {str: torch.tensor} = get_net_grads(net)
         self._shapes = [g.shape for g in self._grads.values()]
         self._net: torch.nn.Module = net
-        self._best_model: torch.nn.Module = copy.deepcopy(net)
+        self._best_model: torch.nn.Module = copy.copy(net)
         self._device = next(net.parameters()).device
         self._sampled_clients: list[Client] = []
         self._sample_fn = random.choices if Server.SAMPLE_CLIENTS_WITH_REPLACEMENT else random.sample

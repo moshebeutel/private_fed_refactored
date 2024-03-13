@@ -22,20 +22,26 @@ def sweep_train(sweep_id, args, config=None):
         logging.info(config)
         set_seed(config.seed)
 
+        args.num_rounds = 1
+        args.num_clients_total = 10
+
+
         args.model_name = config.model_name
         args.num_clients_agg = config.num_clients_agg
         args.num_clients_private = config.num_private_clients
         args.classes_per_user = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
+        args.use_gp = config.use_gp
         args.embed_grads = config.embed_grads
         args.num_clients_public = config.num_clients_public
         args.client_learning_rate = config.client_learning_rate
         args.server_learning_rate = config.server_learning_rate
         args.clients_internal_epochs = config.clients_internal_epochs
 
-        run_name = (f'Model Name: {args.model_name},'
-                    f'Num Clients Agg: {args.num_clients_agg}'
+        run_name = (f'Use GP: {args.use_gp},'
+                    f'Embed Grads: {args.embed_grads},'
+                    f'Num Clients Agg: {args.num_clients_agg},'
                     f'Noise Mult. {args.noise_multiplier},'
                     f'Clip Value {args.clip},'
                     f'Internal Epochs {args.clients_internal_epochs},'
@@ -68,23 +74,30 @@ def run_sweep(args):
         'embed_grads': {
             'values': [False, True]
         },
+        'use_gp': {
+            'values': [False, True]
+        },
         'num_clients_agg': {
-            'values': [20]
+            'values': [2]
+            # 'values': [20]
         },
         'num_clients_public': {
-            'values': [100]
+            'values': [3]
+            # 'values': [100]
         },
         'gep_num_bases': {
-            'values': [80]
+            'values': [3]
+            # 'values': [80]
         },
         'clip': {
-            'values': [1.0, 0.001]
+            'values': [0.001]
         },
         'seed': {
             'values': [50]
         },
         'num_private_clients': {
-            'values': [700]
+            'values': [7]
+            # 'values': [700]
         },
         'model_name': {
             'values': ['resnet20']
@@ -93,13 +106,13 @@ def run_sweep(args):
             'values': [2]
         },
         'clients_internal_epochs': {
-            'values': [1, 5]
+            'values': [1]
         },
         'client_learning_rate': {
-            'values': [0.001, 1.0]
+            'values': [0.001]
         },
         'server_learning_rate': {
-            'values': [0.001, 1.0]
+            'values': [0.001]
         }
 
     }
@@ -107,9 +120,6 @@ def run_sweep(args):
     parameters_dict.update({
         # 'sample_with_replacement': {
         #     'values': [0, 1]
-        # },
-        # 'use_gp': {
-        #     'values': [0]
         # },
     })
     sweep_config['parameters'] = parameters_dict

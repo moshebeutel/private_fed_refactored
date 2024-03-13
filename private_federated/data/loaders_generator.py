@@ -12,21 +12,27 @@ class DataLoadersGenerator:
                                                      classes_per_user=DataLoadersGenerator.CLASSES_PER_USER,
                                                      datasets=datasets)
 
-        # self._users_loaders = {user: {'train': train_loader, 'validation': validation_loader, 'test': test_loader}
-        #                        for user, train_loader, validation_loader, test_loader in
-        #                        zip(users, loaders[0], loaders[1], loaders[2])}
-        self._users_loaders = {user: {'train': train_loader}
-                               for user, train_loader in
-                               zip(users, loaders[0])}
+        self._users_loaders = {user: {'train': train_loader, 'validation': validation_loader, 'test': test_loader}
+                               for user, train_loader, validation_loader, test_loader in
+                               zip(users, loaders[0], loaders[1], loaders[2])}
+        # self._users_loaders = {user: {'train': train_loader}
+        #                        for user, train_loader in
+        #                        zip(users, loaders[0])}
         self._users_class_partitions = {user: (cls, prb) for (user, cls, prb) in
                                         zip(users, cls_partitions['class'], cls_partitions['prob'])}
 
     @property
     def users_loaders(self):
-        return self._users_loaders
+        return {u: self._users_loaders[u]['train'] for u in self._users_loaders}
 
     @property
     def users_class_partitions(self):
         return self._users_class_partitions
 
+    @property
+    def users_validation_loaders(self):
+        return {u: self._users_loaders[u]['validation'] for u in self._users_loaders}
 
+    @property
+    def users_test_loaders(self):
+        return {u: self._users_loaders[u]['test'] for u in self._users_loaders}

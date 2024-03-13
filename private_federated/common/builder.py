@@ -10,6 +10,7 @@ from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory
+from private_federated.federated_learning.gp_client_factory import GPClientFactory
 from private_federated.federated_learning.server import Server
 from private_federated.models.model_factory import ModelFactory
 
@@ -56,7 +57,7 @@ def get_server_params(server_type_name: str,
     server_test_loader, server_val_loader = get_loaders(dataset_factory)
     strategy = aggregation_strategy_factory_method()
     logging.info(f'Aggregation strategy: {strategy.__class__.__name__}')
-    server_params = {'clients': clients,
+    server_params = {'train_clients': clients,
                      'val_clients': val_clients,
                      'test_clients': test_clients,
                      'net': net,
@@ -65,7 +66,7 @@ def get_server_params(server_type_name: str,
                      'aggregating_strategy': strategy}
 
     if server_type_name == GepServer.__name__:
-        server_params['private_clients'] = server_params.pop('clients')
+        server_params['private_clients'] = server_params.pop('train_clients')
         server_params['public_clients'] = clients_factory.public_clients
     return server_params
 
@@ -76,7 +77,7 @@ def get_server_type() -> str:
 
 def build_all(args) -> Server:
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
-    clients_factory = ClientFactory(dataset_factory)
+    clients_factory = GPClientFactory(dataset_factory) if args.use_gp else ClientFactory(dataset_factory)
     models_factory_fn = partial(ModelFactory.get_model, args)
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)

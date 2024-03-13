@@ -27,6 +27,7 @@ class Client:
             epoch_size: int = 0
             for images, labels in self._loader:
                 images, labels = images.to(device), labels.to(device)
+                batch_size: int = len(labels)
                 optimizer.zero_grad()
 
                 outputs = net(images)
@@ -34,19 +35,21 @@ class Client:
                 loss.backward()
 
                 for i, p in net.named_parameters():
-                    self._grads[i] += (p.grad.data / float(Client.INTERNAL_EPOCHS))
+                    self._grads[i] += (p.grad.data / batch_size)
 
                 optimizer.step()
 
                 batch_loss: float = float(loss)
-                batch_size: int = len(labels)
+
                 epoch_size += batch_size
                 del loss, images, labels
                 epoch_loss += batch_loss
-            #     print(f'    client {self._id} batch loss {batch_loss/batch_size}')
-            # print(f'client {self._id} epoch {epoch} epoch loss {epoch_loss/epoch_size}')
 
-    def evaluate(self, net: torch.nn.Module):
+        with torch.no_grad():
+            for i, p in net.named_parameters():
+                self._grads[i] /= Client.INTERNAL_EPOCHS
+
+    def evaluate(self, net: torch.nn.Module) -> tuple[float, float]:
         return evaluate(net=net, loader=self._loader, criterion=Client.CRITERION)
 
     @property
