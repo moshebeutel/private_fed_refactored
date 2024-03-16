@@ -1,6 +1,5 @@
 import logging
 import random
-import copy
 from typing import Callable
 import torch.nn
 import wandb
@@ -9,12 +8,12 @@ from tqdm import tqdm
 from private_federated.common.config import Config
 from private_federated.differential_privacy.gep.utils import flatten_tensor
 from private_federated.federated_learning.client import Client
-from private_federated.train.utils import evaluate
+from private_federated.train.utils import evaluate, clone_model
 from private_federated.models.utils import get_net_grads, zero_net_grads
 
 
 class Server:
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 80
     NUM_CLIENT_AGG: int = 20
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.001
@@ -32,11 +31,11 @@ class Server:
         self._train_clients: list[Client] = train_clients
         self._val_clients: list[Client] = val_clients
         self._test_clients: list[Client] = test_clients
-        zero_net_grads(net)
-        self._grads: {str: torch.tensor} = get_net_grads(net)
+        self._net: torch.nn.Module = clone_model(net)
+        zero_net_grads(self._net)
+        self._grads: {str: torch.tensor} = get_net_grads(self._net)
         self._shapes = [g.shape for g in self._grads.values()]
-        self._net: torch.nn.Module = net
-        self._best_model: torch.nn.Module = copy.copy(net)
+        self._best_model: torch.nn.Module = clone_model(net)
         self._device = next(net.parameters()).device
         self._sampled_clients: list[Client] = []
         self._sample_fn = random.choices if Server.SAMPLE_CLIENTS_WITH_REPLACEMENT else random.sample
@@ -75,35 +74,44 @@ class Server:
                            'best_epoch_validation_acc': best_val_acc,
                            'best_round': best_round})
         # Test the best model achieved
-        self._net = copy.copy(self._best_model).to(self._device)
-        acc, loss = self.test_net()
+        self._net = clone_model(self._best_model).to(self._device)
+
+        acc, loss = self._test_net()
         logging.info(f'test loss {loss} acc {acc}')
         if Config.LOG2WANDB:
             wandb.log({'test_acc': acc, 'test_loss': loss})
 
+        acc, loss = self._validate_train_clients_test_set()
+        logging.info(f'train clients test loss {loss} acc {acc}')
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc_train_clients': acc, 'test_loss_train_clients': loss})
+
+        acc, loss = self._test_with_finetune()
+        logging.info(f'finetune test loss {loss} acc {acc}')
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc_with_finetune': acc, 'test_loss_with_finetune': loss})
+
     def update_best_round_values(self, current_val_acc, current_federated_round):
         best_round = current_federated_round
         best_val_acc = current_val_acc
-        self._best_model = copy.copy(self._net)
+        self._best_model = clone_model(self._net)
         return best_round, best_val_acc
 
     def federated_round(self) -> tuple[float, float]:
         self.sample_clients()
         self.preform_train_round()
         self.aggregate_grads()
-        self.update_net()
-        return self.validate_net()
+        self._update_net()
+        return self._validate_net()
 
     def sample_clients(self):
         self._sampled_clients = self._sample_fn(self._train_clients, k=Server.NUM_CLIENT_AGG)
-        logging.debug(f'sampled clients {str([c.cid for c in self._sampled_clients])}')
+        logging.debug(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
 
     def preform_train_round(self):
         assert self._sampled_clients, f'Expected sampled clients. Got {len(self._sampled_clients)} clients sampled'
         for c in self._sampled_clients:
-            net_copy_for_client = copy.copy(self._net).to(self._device)
-            zero_net_grads(net_copy_for_client)
-            c.train(net=net_copy_for_client)
+            c.train(net=self._net)
 
     def get_sampled_clients_grads(self) -> torch.Tensor:
         # collect private gradients
@@ -128,24 +136,31 @@ class Server:
             self._grads[k] += aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
             offset += num_elements
 
-    def update_net(self):
+    def _update_net(self):
         self._optimizer.zero_grad(set_to_none=False)
         for k, p in self._net.named_parameters():
             p.grad += self._grads[k]
             self._grads[k] = torch.zeros_like(p)
         self._optimizer.step()
 
-    def validate_net(self) -> tuple[float, float]:
-        return self.evaluate_net(clients=self._val_clients)
+    def _validate_net(self) -> tuple[float, float]:
+        return self._evaluate_net(clients=self._val_clients)
 
-    def test_net(self) -> tuple[float, float]:
-        return self.evaluate_net(clients=self._test_clients)
+    def _test_net(self) -> tuple[float, float]:
+        return self._evaluate_net(clients=self._test_clients)
 
-    @torch.no_grad()
-    def evaluate_net(self, clients: list[Client]) -> tuple[float, float]:
+    def _evaluate_net(self, clients: list[Client], fine_tune: bool = False) -> tuple[float, float]:
         total_accuracy, total_loss = 0.0, 0.0
         for c in clients:
-            acc, loss = c.evaluate(net=self._net)
+            if fine_tune:
+                c.train(net=self._net)
+            acc, loss = c.evaluate(net=self._net, local_weight=0.2)
             total_accuracy += (acc / len(clients))
             total_loss += (loss / len(clients))
         return total_accuracy, total_loss
+
+    def _validate_train_clients_test_set(self):
+        return self._evaluate_net(clients=self._train_clients)
+
+    def _test_with_finetune(self):
+        return self._evaluate_net(clients=self._test_clients, fine_tune=True)

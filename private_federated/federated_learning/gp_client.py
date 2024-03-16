@@ -4,7 +4,8 @@ from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
 from private_federated.models.pFedGP.Learner import pFedGPFullLearner
 from private_federated.models.pFedGP.utils import build_tree
-from private_federated.models.utils import get_net_grads
+from private_federated.models.utils import get_net_grads, zero_net_grads
+from private_federated.train.utils import clone_model, merge_model
 
 
 class GPClient(Client):
@@ -17,10 +18,12 @@ class GPClient(Client):
 
     def train(self, net: torch.nn.Module):
         device = next(net.parameters()).device
-        net.train()
-        self._grads = get_net_grads(net)
-        optimizer = Client.OPTIMIZER_TYPE(params=net.parameters(), **Client.OPTIMIZER_PARAMS)
-        gp, label_map, _, __ = build_tree(gp=self._gp, net=net, loader=self._loader)
+        net4train: torch.nn.Module = clone_model(net)
+        net4train.train()
+        zero_net_grads(net4train)
+        self._grads = get_net_grads(net4train)
+        optimizer = Client.OPTIMIZER_TYPE(params=net4train.parameters(), **Client.OPTIMIZER_PARAMS)
+        gp, label_map, _, __ = build_tree(gp=self._gp, net=net4train, loader=self._loader)
         gp.train()
 
         for epoch in range(Client.INTERNAL_EPOCHS):
@@ -30,7 +33,7 @@ class GPClient(Client):
             for images, labels in self._loader:
                 images, labels = images.to(device), labels.to(device)
 
-                outputs: torch.Tensor = net(images)
+                outputs: torch.Tensor = net4train(images)
 
                 X: torch.Tensor
                 Y: torch.Tensor
@@ -49,21 +52,27 @@ class GPClient(Client):
             epoch_size = float(len(Y))
 
             with torch.no_grad():
-                for i, p in net.named_parameters():
+                for i, p in net4train.named_parameters():
                     self._grads[i] += (p.grad.data / epoch_size)
 
             optimizer.step()
             epoch_loss += float(loss)
+            del loss, offset_labels
+
+        self._net = clone_model(net4train)
 
         with torch.no_grad():
-            for i, p in net.named_parameters():
+            for i, p in net4train.named_parameters():
                 self._grads[i] /= Client.INTERNAL_EPOCHS
 
-        gp.tree = None
+        del net4train, gp.tree
 
-    def evaluate(self, net: torch.nn.Module) -> tuple[float, float]:
+    @torch.no_grad()
+    def evaluate(self, net: torch.nn.Module, local_weight: float = 0.0) -> tuple[float, float]:
         eval_accuracy, total, eval_loss = 0.0, 0.0, 0.0
         device = next(net.parameters()).device
+        net = clone_model(net) if (self._net is None or local_weight == 0.0) else \
+            merge_model(net, self._net, include_grads=False, weight1=1 - local_weight, weight2=local_weight)
         net.eval()
         gp, label_map, X_train, Y_train = build_tree(gp=self._gp, net=net, loader=self._loader)
         gp.eval()
@@ -89,4 +98,3 @@ class GPClient(Client):
         eval_accuracy /= total
         eval_loss /= total
         return eval_accuracy, eval_loss
-

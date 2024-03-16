@@ -22,10 +22,6 @@ def sweep_train(sweep_id, args, config=None):
         logging.info(config)
         set_seed(config.seed)
 
-        args.num_rounds = 1
-        args.num_clients_total = 10
-
-
         args.model_name = config.model_name
         args.num_clients_agg = config.num_clients_agg
         args.num_clients_private = config.num_private_clients
@@ -68,7 +64,8 @@ def run_sweep(args):
     }
     parameters_dict = {
         'noise_multiplier': {
-            'values': [25.0, 0.0]
+            'values': [25.0]
+            # 'values': [25.0, 12.79182,4.72193, 2.01643, 0.0]
             # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
@@ -78,26 +75,22 @@ def run_sweep(args):
             'values': [False, True]
         },
         'num_clients_agg': {
-            'values': [2]
-            # 'values': [20]
+            'values': [500]
         },
         'num_clients_public': {
-            'values': [3]
-            # 'values': [100]
+            'values': [100]
         },
         'gep_num_bases': {
-            'values': [3]
-            # 'values': [80]
+            'values': [80]
         },
         'clip': {
             'values': [0.001]
         },
         'seed': {
-            'values': [50]
+            'values': [50, 150]
         },
         'num_private_clients': {
-            'values': [7]
-            # 'values': [700]
+            'values': [700]
         },
         'model_name': {
             'values': ['resnet20']

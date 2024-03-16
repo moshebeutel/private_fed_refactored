@@ -5,10 +5,10 @@ from torchvision.transforms import transforms
 
 
 class DatasetFactory:
-    DATASETS_HUB = {'cifar10': CIFAR10, 'cifar100': CIFAR100}
+    DATASETS_HUB = {'CIFAR10': CIFAR10, 'CIFAR100': CIFAR100}
     DATASETS_DIR = f"{str(Path.home())}/datasets/"
-    NORMALIZATIONS = {'cifar10': transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                      'cifar100': transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))}
+    NORMALIZATIONS = {'CIFAR10': transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                      'CIFAR100': transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))}
 
     def __init__(self, dataset_name):
         assert dataset_name in DatasetFactory.DATASETS_HUB, (f'Expected dataset name one of'

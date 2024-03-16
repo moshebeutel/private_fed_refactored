@@ -15,10 +15,6 @@ from private_federated.federated_learning.server import Server
 from private_federated.models.model_factory import ModelFactory
 
 
-# def create_gep_strategy():
-#     GepNoResidualAggregationStrategy(GEP(num_bases, batch_size, clip0, clip1))
-
-
 def get_aggregation_strategy(args):
     """
     Aggregation strategy factory method
@@ -75,9 +71,13 @@ def get_server_type() -> str:
     return (Server if not Config.EMBED_GRADS else GepServer).__name__
 
 
+def get_clients_factory_type(args):
+    return GPClientFactory if args.use_gp else ClientFactory
+
+
 def build_all(args) -> Server:
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
-    clients_factory = GPClientFactory(dataset_factory) if args.use_gp else ClientFactory(dataset_factory)
+    clients_factory = get_clients_factory_type(args)(dataset_factory)
     models_factory_fn = partial(ModelFactory.get_model, args)
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
