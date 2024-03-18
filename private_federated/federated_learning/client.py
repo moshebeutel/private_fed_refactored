@@ -1,4 +1,3 @@
-import logging
 import torch.nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
@@ -11,60 +10,75 @@ class Client:
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
     OPTIMIZER_PARAMS = {'lr': 1e-3, 'weight_decay': 1e-3, 'momentum': 0.9}
-    PESONALIZATION_WEIGHT = 0.1
+    PERSONALIZATION_WEIGHT = 0.1
 
-    def __init__(self, cid: int, loader: DataLoader):
+    def __init__(self, cid: int, train_loader: DataLoader, eval_loader: DataLoader = None):
         self._id = cid
-        self._loader = loader
+        self._train_loader = train_loader
+        self._eval_loader = eval_loader
         self._grads = {}
         self._net = None
-        self._sample_counter = 0
+        self._device = None
 
-    def train(self, net: torch.nn.Module):
-        self._sample_counter += 1
-        device = next(net.parameters()).device
+    def train(self):
+        self._train(num_epochs=Client.INTERNAL_EPOCHS)
+
+    def train_single_epoch(self):
+        self._train(num_epochs=1)
+
+    def _train(self, num_epochs: int = INTERNAL_EPOCHS):
+        assert self._net is not None, 'Client must receive net must before '
+        self._net.train()
+
         criterion = Client.CRITERION
-        net4train: torch.nn.Module = clone_model(net)
-        net4train.train()
-        zero_net_grads(net4train)
-        self._grads = get_net_grads(net4train)
-        optimizer = Client.OPTIMIZER_TYPE(params=net4train.parameters(), **Client.OPTIMIZER_PARAMS)
-        for epoch in range(Client.INTERNAL_EPOCHS):
+        optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **Client.OPTIMIZER_PARAMS)
+
+        for epoch in range(num_epochs):
             epoch_loss: float = 0.0
-            epoch_size: int = 0
-            for images, labels in self._loader:
-                images, labels = images.to(device), labels.to(device)
+            for images, labels in self._train_loader:
+                images, labels = images.to(self._device), labels.to(self._device)
                 batch_size: int = len(labels)
                 optimizer.zero_grad()
 
-                outputs = net4train(images)
+                outputs = self._net(images)
                 loss = criterion(outputs, labels)
                 loss.backward()
 
-                for i, p in net4train.named_parameters():
+                for i, p in self._net.named_parameters():
                     self._grads[i] += (p.grad.data / batch_size)
 
                 optimizer.step()
 
                 batch_loss: float = float(loss)
 
-                epoch_size += batch_size
                 del loss, images, labels
                 epoch_loss += batch_loss
 
-        self._net = clone_model(net4train)
-
         with torch.no_grad():
             for i in self._grads:
-                self._grads[i] /= Client.INTERNAL_EPOCHS
+                self._grads[i] /= num_epochs
 
-    def evaluate(self, net: torch.nn.Module, fine_tune: bool = False, local_weight: float = 0.0) -> tuple[float, float]:
+        zero_net_grads(self._net)
 
-        self._net = clone_model(net) if (self._net is None or local_weight == 0.0) else \
-            merge_model(net, self._net, include_grads=False, weight1=1 - local_weight, weight2=local_weight)
-        if fine_tune:
-            self.train(self._net)
-        return evaluate(net=self._net, loader=self._loader, criterion=Client.CRITERION)
+    def evaluate(self) -> tuple[float, float]:
+        return evaluate(net=self._net, loader=self._eval_loader, criterion=Client.CRITERION)
+
+    def receive_net_from_server(self, net: torch.nn.Module):
+        self._net = clone_model(net)
+        self._new_net_updates()
+
+    def merge_server_model_with_personal_model(self, net: torch):
+        assert self._net is not None, 'Net not initialized. Nothing to merge to'
+        self._net = merge_model(net, self._net, include_grads=False,
+                                weight1=1 - Client.PERSONALIZATION_WEIGHT,
+                                weight2=Client.PERSONALIZATION_WEIGHT)
+
+        self._new_net_updates()
+
+    def _new_net_updates(self):
+        zero_net_grads(self._net)
+        self._grads = get_net_grads(self._net)
+        self._device = next(self._net.parameters()).device
 
     @property
     def grads(self):

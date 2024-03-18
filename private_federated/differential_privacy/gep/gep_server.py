@@ -32,32 +32,38 @@ class GepServer(Server):
         self._public_clients = public_clients
         self._pca: PCA = PCA()
 
-    def sample_clients(self):
-        super().sample_clients()
-        self._sampled_clients = self._public_clients + self._sampled_clients
+    def _aggregate_grads(self):
 
-    def aggregate_grads(self):
+        # train public clients to get new public gradients
+        self._single_train_epoch_public_clients()
 
         # Update subspace basis according to public clients
-        public_gradients = self.extract_public_gradients()
-        self.compute_subspace(public_gradients)
-
-        # remove public clients - if they do not contribute to learning
-        self._sampled_clients = self._sampled_clients[len(self._public_clients):]
+        public_gradients = self._extract_public_gradients()
+        self._compute_subspace(public_gradients)
 
         # get new grads
-        grad_batch_flattened: torch.Tensor = self.get_sampled_clients_grads()
-        grad_batch_flattened_embedded: torch.Tensor = self.embed_grad(grad_batch_flattened)
+        grad_batch_flattened: torch.Tensor = self._get_sampled_clients_grads()
+
+        # embed grads in subspace
+        grad_batch_flattened_embedded: torch.Tensor = self._embed_grad(grad_batch_flattened)
 
         # aggregate grads
         aggregated_embedded_flattened_grads: torch.Tensor = self._aggregating_strategy(grad_batch_flattened_embedded)
 
         # reconstruct and reshape grads
-        reconstructed_grads_flattened: torch.Tensor = self.project_back_embedding(aggregated_embedded_flattened_grads)
-        self.store_aggregated_grads(reconstructed_grads_flattened)
-        del grad_batch_flattened, grad_batch_flattened_embedded
+        reconstructed_grads_flattened: torch.Tensor = self._project_back_embedding(aggregated_embedded_flattened_grads)
+        self._store_aggregated_grads(reconstructed_grads_flattened)
 
-    def compute_subspace(self, public_gradients: torch.Tensor):
+        # delete temporary tensors
+        del grad_batch_flattened, grad_batch_flattened_embedded,\
+            aggregated_embedded_flattened_grads, reconstructed_grads_flattened
+
+    def _single_train_epoch_public_clients(self):
+        for public_client in self._public_clients:
+            public_client.receive_net_from_server(net=self._net)
+            public_client.train_single_epoch()
+
+    def _compute_subspace(self, public_gradients: torch.Tensor):
         num_bases: int
         pub_error: float
         pca: PCA
@@ -65,17 +71,17 @@ class GepServer(Server):
         self._pca = pca
         del public_gradients
 
-    def embed_grad(self, grad: torch.Tensor) -> torch.Tensor:
+    def _embed_grad(self, grad: torch.Tensor) -> torch.Tensor:
         grad_np: np.ndarray = grad.cpu().detach().numpy()
         embedding: np.ndarray = self._pca.transform(grad_np)
         return torch.from_numpy(embedding)
 
-    def project_back_embedding(self, embedding: torch.Tensor) -> torch.Tensor:
+    def _project_back_embedding(self, embedding: torch.Tensor) -> torch.Tensor:
         embedding_np: np.ndarray = embedding.cpu().detach().numpy()
         grad_np: np.ndarray = self._pca.inverse_transform(embedding_np)
         return torch.from_numpy(grad_np).to(self._device)
 
-    def extract_public_gradients(self):
+    def _extract_public_gradients(self):
         public_batch_grad_list = []
         for k in self._grads.keys():
             grad_batch = torch.stack([c.grads[k] for c in self._public_clients])

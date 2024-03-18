@@ -8,14 +8,15 @@ from tqdm import tqdm
 from private_federated.common.config import Config
 from private_federated.differential_privacy.gep.utils import flatten_tensor
 from private_federated.federated_learning.client import Client
-from private_federated.train.utils import evaluate, clone_model
+from private_federated.federated_learning.utils import evaluate_clients
 from private_federated.models.utils import get_net_grads, zero_net_grads
+from private_federated.train.utils import clone_model
 
 
 class Server:
-    NUM_ROUNDS = 80
+    NUM_ROUNDS = 100
     NUM_CLIENT_AGG: int = 20
-    SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
+    SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = False
     LEARNING_RATE: float = 0.001
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
@@ -38,6 +39,7 @@ class Server:
         self._best_model: torch.nn.Module = clone_model(net)
         self._device = next(net.parameters()).device
         self._sampled_clients: list[Client] = []
+        self._sampled_clients_history: list[Client] = []
         self._sample_fn = random.choices if Server.SAMPLE_CLIENTS_WITH_REPLACEMENT else random.sample
         self._optimizer = torch.optim.SGD(self._net.parameters(),
                                           lr=Server.LEARNING_RATE,
@@ -47,73 +49,50 @@ class Server:
         self._val_loader: DataLoader = val_loader
         self._test_loader: DataLoader = test_loader
         self._aggregating_strategy = aggregating_strategy
+        self._last_val_acc: float = 0.0
+        self._best_val_acc: float = 0.0
+        self._best_round: int = 0
+        self._progress_bar = tqdm(range(Server.NUM_ROUNDS))
 
     def federated_learn(self):
 
-        pbar = tqdm(range(Server.NUM_ROUNDS))
-        best_val_acc = 0.0
-        best_round = 0
-        for federated_round in pbar:
-            # Train Round
-            round_val_acc, round_val_loss = self.federated_round()
+        # main federated learning loop
+        for federated_train_round in self._progress_bar:
 
-            # Best round so far?
-            if round_val_acc > best_val_acc:
-                logging.debug('Best val acc so far')
-                best_round, best_val_acc = self.update_best_round_values(round_val_acc, federated_round)
+            self._federated_round()
 
-            # progress bar and logging
-            pbar.set_description(f'Round {federated_round} finished.'
-                                 f' Acc {round_val_acc} '
-                                 f'({best_val_acc} best acc till now,'
-                                 f' best round {best_round}),'
-                                 f' loss {round_val_loss}')
-            if Config.LOG2WANDB:
-                wandb.log({'val_acc': round_val_acc,
-                           'val_loss': round_val_loss,
-                           'best_epoch_validation_acc': best_val_acc,
-                           'best_round': best_round})
-        # Test the best model achieved
-        self._net = clone_model(self._best_model).to(self._device)
+            self._check_best_round(federated_train_round)
 
-        acc, loss = self._test_net()
-        logging.info(f'test loss {loss} acc {acc}')
-        if Config.LOG2WANDB:
-            wandb.log({'test_acc': acc, 'test_loss': loss})
+            self.update_progress_bar_desc(federated_train_round)
 
-        acc, loss = self._validate_train_clients_test_set()
-        logging.info(f'train clients test loss {loss} acc {acc}')
-        if Config.LOG2WANDB:
-            wandb.log({'test_acc_train_clients': acc, 'test_loss_train_clients': loss})
+        self._test_net()
 
-        acc, loss = self._test_with_finetune()
-        logging.info(f'finetune test loss {loss} acc {acc}')
-        if Config.LOG2WANDB:
-            wandb.log({'test_acc_with_finetune': acc, 'test_loss_with_finetune': loss})
+    def update_progress_bar_desc(self, federated_train_round):
+        self._progress_bar.set_description(f'Round {federated_train_round} finished.'
+                                           f' Acc {self._last_val_acc} '
+                                           f'({self._best_val_acc} best acc till now,'
+                                           f' best round {self._best_round})')
 
-    def update_best_round_values(self, current_val_acc, current_federated_round):
-        best_round = current_federated_round
-        best_val_acc = current_val_acc
-        self._best_model = clone_model(self._net)
-        return best_round, best_val_acc
-
-    def federated_round(self) -> tuple[float, float]:
-        self.sample_clients()
-        self.preform_train_round()
-        self.aggregate_grads()
+    def _federated_round(self):
+        self._sample_clients()
+        self._preform_train_round(self._sampled_clients)
+        self._aggregate_grads()
         self._update_net()
-        return self._validate_net()
+        self._validate_net()
 
-    def sample_clients(self):
+    def _sample_clients(self):
         self._sampled_clients = self._sample_fn(self._train_clients, k=Server.NUM_CLIENT_AGG)
+        self._sampled_clients_history.extend(self._sampled_clients)
+        self._sampled_clients_history = list(set(self._sampled_clients_history))
         logging.debug(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
 
-    def preform_train_round(self):
-        assert self._sampled_clients, f'Expected sampled clients. Got {len(self._sampled_clients)} clients sampled'
-        for c in self._sampled_clients:
-            c.train(net=self._net)
+    def _preform_train_round(self, clients: list[Client]):
+        assert clients, f'Expected clients list. Got {len(clients)} clients'
+        for c in clients:
+            c.receive_net_from_server(net=self._net)
+            c.train()
 
-    def get_sampled_clients_grads(self) -> torch.Tensor:
+    def _get_sampled_clients_grads(self) -> torch.Tensor:
         # collect private gradients
         layer_grad_batch_list = []
         for k in self._grads.keys():
@@ -122,13 +101,13 @@ class Server:
         grad_batch_flattened = flatten_tensor(layer_grad_batch_list)
         return grad_batch_flattened
 
-    def aggregate_grads(self):
-        grad_batch_flattened: torch.Tensor = self.get_sampled_clients_grads()
+    def _aggregate_grads(self):
+        grad_batch_flattened: torch.Tensor = self._get_sampled_clients_grads()
         aggregated_flattened_grads: torch.Tensor = self._aggregating_strategy(grad_batch_flattened)
         del grad_batch_flattened
-        self.store_aggregated_grads(aggregated_flattened_grads)
+        self._store_aggregated_grads(aggregated_flattened_grads)
 
-    def store_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
+    def _store_aggregated_grads(self, aggregated_grads_flattened: torch.Tensor):
         offset = 0
         for k in self._grads:
             num_elements: int = self._grads[k].numel()
@@ -143,22 +122,80 @@ class Server:
             self._grads[k] = torch.zeros_like(p)
         self._optimizer.step()
 
-    def _validate_net(self) -> tuple[float, float]:
-        return self._evaluate_net(clients=self._val_clients)
+    def _validate_net(self):
+        self._last_val_acc, val_loss = self._evaluate_val_clients()
+        # self._last_val_acc, val_loss = self._evaluate_train_clients_on_their_test_set()
+        if Config.LOG2WANDB:
+            wandb.log({'val_acc': self._last_val_acc,
+                       'val_loss': val_loss})
 
-    def _test_net(self) -> tuple[float, float]:
-        return self._evaluate_net(clients=self._test_clients)
+    def _test_net(self):
 
-    def _evaluate_net(self, clients: list[Client], fine_tune: bool = False, local_weight: float = 0.0) -> tuple[float, float]:
-        total_accuracy, total_loss = 0.0, 0.0
-        for c in clients:
-            acc, loss = c.evaluate(net=self._net, fine_tune=fine_tune, local_weight=local_weight)
-            total_accuracy += acc
-            total_loss += loss
-        return total_accuracy/float(len(clients)), total_loss/float(len(clients))
+        # Use the best model achieved for test
+        self._net = clone_model(self._best_model).to(self._device)
 
-    def _validate_train_clients_test_set(self):
-        return self._evaluate_net(clients=self._train_clients, local_weight=Client.PESONALIZATION_WEIGHT)
+        acc, loss = self._evaluate_test_clients()
+        logging.info(f'test loss {loss} acc {acc}')
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc': acc, 'test_loss': loss})
 
-    def _test_with_finetune(self):
-        return self._evaluate_net(clients=self._test_clients, fine_tune=True, local_weight=Client.PESONALIZATION_WEIGHT)
+        acc, loss = self._evaluate_train_clients_on_their_test_set_with_personalization()
+        logging.info(f'train clients test loss {loss} acc {acc}')
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc_train_clients': acc, 'test_loss_train_clients': loss})
+
+        acc, loss = self._evaluate_test_clients_with_finetune()
+        logging.info(f'finetune test loss {loss} acc {acc}')
+        if Config.LOG2WANDB:
+            wandb.log({'test_acc_with_finetune': acc, 'test_loss_with_finetune': loss})
+
+    def _evaluate_val_clients(self) -> tuple[float, float]:
+        for client in self._val_clients:
+            client.receive_net_from_server(net=self._net)
+        return evaluate_clients(clients=self._val_clients)
+
+    def _evaluate_val_clients_with_finetune(self) -> tuple[float, float]:
+        # fine tune model for each client
+        for client in self._val_clients:
+            client.train_single_epoch()
+            client.merge_server_model_with_personal_model(net=self._net)
+
+        return evaluate_clients(clients=self._val_clients)
+
+    def _evaluate_test_clients(self) -> tuple[float, float]:
+        for client in self._test_clients:
+            client.receive_net_from_server(net=self._net)
+        return evaluate_clients(clients=self._test_clients)
+
+    def _evaluate_test_clients_with_finetune(self) -> tuple[float, float]:
+        # fine tune model for each client
+        for client in self._test_clients:
+            client.train_single_epoch()
+            client.merge_server_model_with_personal_model(net=self._net)
+
+        return evaluate_clients(clients=self._test_clients)
+
+    def _evaluate_train_clients_on_their_test_set(self) -> tuple[float, float]:
+        for client in self._sampled_clients_history:
+            client.receive_net_from_server(net=self._net)
+        return evaluate_clients(clients=self._sampled_clients_history)
+
+    def _evaluate_train_clients_on_their_test_set_with_personalization(self) -> tuple[float, float]:
+        # each client blend server weights with his local
+        for client in self._sampled_clients_history:
+            client.merge_server_model_with_personal_model(net=self._net)
+
+        return evaluate_clients(clients=self._sampled_clients_history)
+
+    def _check_best_round(self, federated_train_round: int) -> None:
+        if self._last_val_acc > self._best_val_acc:
+            logging.debug(f'Best val acc so far {self._last_val_acc} > {self._best_val_acc}')
+            self._update_best_round_values(federated_train_round)
+
+    def _update_best_round_values(self, current_federated_round) -> None:
+        self._best_round = current_federated_round
+        self._best_val_acc = self._last_val_acc
+        self._best_model = clone_model(self._net)
+        if Config.LOG2WANDB:
+            wandb.log({'best_epoch_validation_acc': self._best_val_acc,
+                       'best_round': self._best_round})

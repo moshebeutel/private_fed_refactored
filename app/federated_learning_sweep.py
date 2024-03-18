@@ -1,9 +1,7 @@
 import argparse
 import logging
 from functools import partial
-
 import wandb
-
 import private_federated
 import private_federated.common
 from private_federated.common import builder
@@ -67,14 +65,14 @@ def run_sweep(args):
     parameters_dict = {
         'noise_multiplier': {
             # 'values': [25.0, 0.0]
-            'values': [25.0, 12.79182, 4.72193, 2.01643, 0.0]
+            'values': [12.79182, 4.72193, 2.01643, 0.0]
             # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
             'values': [False, True]
         },
         'use_gp': {
-            'values': [False]
+            'values': [False, True]
         },
         'num_clients_agg': {
             'values': [50]
@@ -83,13 +81,13 @@ def run_sweep(args):
             'values': [100]
         },
         'gep_num_bases': {
-                'values': [80]
+            'values': [80]
         },
         'clip': {
             'values': [0.001]
         },
         'seed': {
-            'values': [50, 100, 150]
+            'values': [50, 150]
         },
         'num_private_clients': {
             'values': [1000]

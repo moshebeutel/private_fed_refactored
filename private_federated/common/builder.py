@@ -11,7 +11,7 @@ from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated.differential_privacy.gep.gep_server import GepServer
-from private_federated.federated_learning.clients_factory import ClientFactory
+from private_federated.federated_learning.clients_factory import ClientFactory, NetClientsFactory
 from private_federated.federated_learning.gp_client_factory import GPClientFactory
 from private_federated.federated_learning.server import Server
 
@@ -74,7 +74,7 @@ def get_server_type() -> str:
 
 
 def get_clients_factory_type(args):
-    return GPClientFactory if args.use_gp else ClientFactory
+    return GPClientFactory if args.use_gp else NetClientsFactory
 
 
 def build_all(args) -> Server:

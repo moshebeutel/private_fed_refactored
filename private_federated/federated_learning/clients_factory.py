@@ -3,9 +3,12 @@ from private_federated.federated_learning.server import Server
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
+from typing import TypeVar, Generic
+
+T = TypeVar('T')
 
 
-class ClientFactory:
+class ClientFactory(Generic[T]):
     NUM_CLIENTS_PUBLIC = 100
     NUM_CLIENTS_PRIVATE = 1000
     NUM_CLIENTS_VAL = 50
@@ -55,7 +58,8 @@ class ClientFactory:
                                    self.validation_user_list +
                                    self.test_user_list +
                                    self.dummy_users)
-        assert len(set(self.all_users_list)) == len(self.all_users_list), f"duplicate users found: {self.all_users_list}"
+        assert len(set(self.all_users_list)) == len(
+            self.all_users_list), f"duplicate users found: {self.all_users_list}"
 
         loaders_generator = DataLoadersGenerator(users=self.all_users_list, datasets=[dataset_factory.train_set,
                                                                                       dataset_factory.val_set,
@@ -74,9 +78,15 @@ class ClientFactory:
         ClientFactory.log_user_list('Dummy Users', self.dummy_users)
         ClientFactory.log_user_list('All Users', self.all_users_list)
 
+    def _get_client_type(self) -> T:
+        raise NotImplementedError
+
     def _create_clients(self, loaders_generator):
-        loaders = loaders_generator.users_loaders
-        self._clients = [Client(cid=cid, loader=loaders[cid]) for cid in loaders]
+        train_loaders = loaders_generator.users_loaders
+        eval_loaders = loaders_generator.users_test_loaders
+        loaders = {cid: {'train': train_loaders[cid], 'eval': eval_loaders[cid]} for cid in train_loaders}
+        self._clients = [self._get_client_type()(cid=cid, train_loader=loaders[cid]['train'], eval_loader=loaders[cid]['eval'])
+                         for cid in loaders]
 
     @staticmethod
     def log_user_list(list_name: str, user_list: list[str]):
@@ -102,3 +112,8 @@ class ClientFactory:
     @property
     def test_clients(self):
         return self._test_clients
+
+
+class NetClientsFactory(ClientFactory[Client]):
+    def _get_client_type(self):
+        return Client
