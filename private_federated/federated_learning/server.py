@@ -149,16 +149,16 @@ class Server:
     def _test_net(self) -> tuple[float, float]:
         return self._evaluate_net(clients=self._test_clients)
 
-    def _evaluate_net(self, clients: list[Client], fine_tune: bool = False) -> tuple[float, float]:
+    def _evaluate_net(self, clients: list[Client], fine_tune: bool = False, local_weight: float = 0.0) -> tuple[float, float]:
         total_accuracy, total_loss = 0.0, 0.0
         for c in clients:
-            acc, loss = c.evaluate(net=self._net, fine_tune=fine_tune, local_weight=0.2)
+            acc, loss = c.evaluate(net=self._net, fine_tune=fine_tune, local_weight=local_weight)
             total_accuracy += acc
             total_loss += loss
         return total_accuracy/float(len(clients)), total_loss/float(len(clients))
 
     def _validate_train_clients_test_set(self):
-        return self._evaluate_net(clients=self._train_clients)
+        return self._evaluate_net(clients=self._train_clients, local_weight=Client.PESONALIZATION_WEIGHT)
 
     def _test_with_finetune(self):
-        return self._evaluate_net(clients=self._test_clients, fine_tune=True)
+        return self._evaluate_net(clients=self._test_clients, fine_tune=True, local_weight=Client.PESONALIZATION_WEIGHT)
