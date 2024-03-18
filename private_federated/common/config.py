@@ -1,6 +1,8 @@
 import inspect
 from typing import TypeVar
 
+import torch
+
 T = TypeVar('T')
 
 
@@ -15,6 +17,11 @@ class Config:
     EMBED_GRADS = False
     CLIP_VALUE = 0.1
     NOISE_MULTIPLIER = 4.72193  # 'values': [12.79182, 4.72193, 2.01643]
+    DEVICE = torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu"
+        )
+
+    MODEL_NAME = 'resnet20'
 
     USE_GP = True
     GP_KERNEL_FUNCTION = 'RBFKernel'

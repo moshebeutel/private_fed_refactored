@@ -1,7 +1,10 @@
 import logging
+
 import torch.nn
-from private_federated.models.resnet_cifar import resnet20, resnet32, resnet14, resnet8, resnet44
 from torch import nn
+
+from private_federated.common.config import Config
+from private_federated.models.resnet_cifar import resnet20, resnet32, resnet14, resnet8, resnet44
 
 
 class ModelFactory:
@@ -27,15 +30,21 @@ class ModelFactory:
                     m.bias.data.zero_()
         return model
 
-    @staticmethod
-    def get_model(args) -> nn.Module:
-        assert args.model_name in ModelFactory.MODEL_HUB.keys(), (f'Expected one of {ModelFactory.MODEL_HUB.keys()}.'
-                                                                  f' Got {args.model_name}')
-        model = ModelFactory.MODEL_HUB[args.model_name]()
+    def __init__(self, model_name: str):
+        assert model_name in self.MODEL_HUB.keys(), 'Unknown model name: {}'.format(model_name)
+        self.model_fn = ModelFactory.MODEL_HUB[model_name]
+        ModelFactory.INSTANCE = self
+
+    def get_model(self) -> nn.Module:
+        model = self.model_fn()
         model = ModelFactory.init_model_weights(model)
-        device = torch.device(
-            "cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu"
-        )
+        device = Config.DEVICE
         model.to(device)
-        logging.info(f'Created model: {args.model_name} in device: {device}')
+        logging.info(f'Created model: {self.model_fn} in device: {device}')
         return model
+
+    INSTANCE = None
+
+    @staticmethod
+    def get_instance():
+        return ModelFactory.INSTANCE

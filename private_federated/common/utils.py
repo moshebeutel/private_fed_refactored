@@ -1,5 +1,8 @@
 import logging
 from pathlib import Path
+
+import torch
+
 from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.common.config import Config, to_dict
@@ -11,6 +14,11 @@ from private_federated.models.model_factory import ModelFactory
 
 
 def populate_args(args):
+
+    assert args.model_name in ModelFactory.MODEL_HUB.keys(), (f'Expected one of {ModelFactory.MODEL_HUB.keys()}.'
+                                                              f' Got {args.model_name}')
+    Config.MODEL_NAME = args.model_name
+
     DatasetFactory.DATASETS_DIR = args.data_path
     DataLoadersGenerator.CLASSES_PER_USER = args.classes_per_user
     DataLoadersGenerator.BATCH_SIZE = args.batch_size
@@ -36,8 +44,12 @@ def populate_args(args):
     Config.EMBED_GRADS = args.embed_grads
     Config.CLIP_VALUE = args.clip
     Config.NOISE_MULTIPLIER = args.noise_multiplier
+    Config.DEVICE = torch.device(
+            "cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu"
+        )
 
-    logging.info({**to_dict(DataLoadersGenerator),
+    logging.info({**to_dict(ModelFactory),
+                  **to_dict(DataLoadersGenerator),
                   **to_dict(Client),
                   **to_dict(ClientFactory),
                   **to_dict(Server),
