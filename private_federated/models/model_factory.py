@@ -33,18 +33,11 @@ class ModelFactory:
     def __init__(self, model_name: str):
         assert model_name in self.MODEL_HUB.keys(), 'Unknown model name: {}'.format(model_name)
         self.model_fn = ModelFactory.MODEL_HUB[model_name]
-        ModelFactory.INSTANCE = self
 
     def get_model(self) -> nn.Module:
         model = self.model_fn()
         model = ModelFactory.init_model_weights(model)
         device = Config.DEVICE
         model.to(device)
-        logging.info(f'Created model: {self.model_fn} in device: {device}')
+        logging.debug(f'Created model: {self.model_fn} in device: {device}')
         return model
-
-    INSTANCE = None
-
-    @staticmethod
-    def get_instance():
-        return ModelFactory.INSTANCE

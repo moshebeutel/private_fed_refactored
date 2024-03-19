@@ -1,10 +1,12 @@
 import torch.nn
+from private_federated.common.config import Config
+from private_federated.models.model_factory import ModelFactory
 from private_federated.models.resnet_cifar import resnet8, resnet20
 
 
 @torch.no_grad()
 def clone_model(model: torch.nn.Module, include_grads: bool = False) -> torch.nn.Module:
-    cloned_model = resnet20()
+    cloned_model = ModelFactory(Config.MODEL_NAME).get_model()
     for source_param, target_param in zip(model.parameters(), cloned_model.parameters()):
         target_param = torch.zeros_like(source_param, device=source_param.device)
         target_param.data = source_param.data
@@ -22,7 +24,7 @@ def merge_model(model1: torch.nn.Module,
                 include_grads: bool = False,
                 weight1: float = 0.5,
                 weight2: float = 0.5) -> torch.nn.Module:
-    cloned_model = resnet20()
+    cloned_model = ModelFactory(Config.MODEL_NAME).get_model()
     for source_param1, source_param2, target_param in zip(model1.parameters(), model2.parameters(),
                                                           cloned_model.parameters()):
         target_param = torch.zeros_like(source_param1, device=source_param1.device)

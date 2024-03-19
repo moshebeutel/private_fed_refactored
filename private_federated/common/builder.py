@@ -3,8 +3,6 @@ from functools import partial
 from typing import Callable
 import torch
 from torch.utils.data import Dataset, DataLoader
-
-from private_federated.models.resnet_cifar import resnet8, resnet20
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.common.config import Config
 from private_federated.data.dataset_factory import DatasetFactory
@@ -14,7 +12,7 @@ from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory, NetClientsFactory
 from private_federated.federated_learning.gp_client_factory import GPClientFactory
 from private_federated.federated_learning.server import Server
-
+from private_federated.models.model_factory import ModelFactory
 
 
 def get_aggregation_strategy(args):
@@ -80,7 +78,7 @@ def get_clients_factory_type(args):
 def build_all(args) -> Server:
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
     clients_factory = get_clients_factory_type(args)(dataset_factory)
-    models_factory_fn = resnet20
+    models_factory_fn = ModelFactory(args.model_name).get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
     return server

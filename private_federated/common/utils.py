@@ -106,7 +106,8 @@ def get_command_line_arguments(parser):
     parser.add_argument("--weight-decay", type=float, default="1e-3", help="Optimizer weight decay parameters")
     parser.add_argument("--momentum", type=float, default="0.9", help="Optimizer momentum parameter")
 
-    parser.add_argument("--model-name", type=str, choices=ModelFactory.get_model_hub_names(), default='resnet20',
+    parser.add_argument("--model-name", type=str, choices=ModelFactory.get_model_hub_names(),
+                        default=Config.MODEL_NAME,
                         help='network model name (resnet20 ...)')
 
     parser.add_argument("--use-cuda", type=bool, default=True,
