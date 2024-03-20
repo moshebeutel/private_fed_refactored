@@ -3,13 +3,16 @@ import numpy as np
 import torch
 from sklearn.decomposition import PCA
 from torch.utils.data import DataLoader
+
+from private_federated.common.config import Config
 from private_federated.differential_privacy.gep.utils import flatten_tensor, get_bases
 from private_federated.federated_learning.client import Client
 from private_federated.federated_learning.server import Server
 
 
 class GepServer(Server):
-    NUM_BASIS_ELEMENTS = 5
+    NUM_BASIS_ELEMENTS = 80
+    GRADIENTS_HISTORY_SIZE = 200
 
     def __init__(self,
                  public_clients: list[Client],
@@ -29,6 +32,8 @@ class GepServer(Server):
                          aggregating_strategy=aggregating_strategy)
 
         self._num_basis = GepServer.NUM_BASIS_ELEMENTS
+        self._public_gradients_history_size = GepServer.GRADIENTS_HISTORY_SIZE
+        self._public_gradients_history: torch.Tensor = torch.tensor([], device=Config.DEVICE)
         self._public_clients = public_clients
         self._pca: PCA = PCA()
 
@@ -37,7 +42,7 @@ class GepServer(Server):
         # train public clients to get new public gradients
         self._single_train_epoch_public_clients()
 
-        # Update subspace basis according to public clients
+        # Update subspace basis according to public clients' gradients
         public_gradients = self._get_public_gradients()
         self._compute_subspace(public_gradients)
 
@@ -81,5 +86,12 @@ class GepServer(Server):
         grad_np: np.ndarray = self._pca.inverse_transform(embedding_np)
         return torch.from_numpy(grad_np).to(self._device)
 
-    def _get_public_gradients(self):
-        return self._get_clients_grads(self._public_clients)
+    def _get_public_gradients(self) -> torch.Tensor:
+        new_public_gradients = self._get_clients_grads(self._public_clients)
+        # Maintain public gradient history
+        self._add_public_gradients_to_history(new_public_gradients)
+        return self._public_gradients_history
+
+    def _add_public_gradients_to_history(self, public_gradients: torch.Tensor) -> None:
+        self._public_gradients_history = torch.cat((self._public_gradients_history, public_gradients), dim=0)
+        self._public_gradients_history = self._public_gradients_history[-self._public_gradients_history_size:]
