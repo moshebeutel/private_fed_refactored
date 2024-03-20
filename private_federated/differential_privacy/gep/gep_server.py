@@ -9,7 +9,7 @@ from private_federated.federated_learning.server import Server
 
 
 class GepServer(Server):
-    NUM_BASIS_ELEMENTS = 10
+    NUM_BASIS_ELEMENTS = 5
 
     def __init__(self,
                  public_clients: list[Client],
@@ -38,7 +38,7 @@ class GepServer(Server):
         self._single_train_epoch_public_clients()
 
         # Update subspace basis according to public clients
-        public_gradients = self._extract_public_gradients()
+        public_gradients = self._get_public_gradients()
         self._compute_subspace(public_gradients)
 
         # get new grads
@@ -81,11 +81,5 @@ class GepServer(Server):
         grad_np: np.ndarray = self._pca.inverse_transform(embedding_np)
         return torch.from_numpy(grad_np).to(self._device)
 
-    def _extract_public_gradients(self):
-        public_batch_grad_list = []
-        for k in self._grads.keys():
-            grad_batch = torch.stack([c.grads[k] for c in self._public_clients])
-            public_batch_grad_list.append(grad_batch.reshape(grad_batch.shape[0], -1))
-            del grad_batch
-        public_gradients = flatten_tensor(public_batch_grad_list)
-        return public_gradients
+    def _get_public_gradients(self):
+        return self._get_clients_grads(self._public_clients)

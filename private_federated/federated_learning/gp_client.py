@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
 from private_federated.models.pFedGP.utils import build_tree
+from private_federated.train.utils import clone_model
 
 
 class GPClient(Client):
@@ -15,6 +16,7 @@ class GPClient(Client):
 
     def _train(self, num_epochs: int = Client.INTERNAL_EPOCHS):
         assert self._net is not None, 'Client must receive net must before '
+        backup = clone_model(self._net).state_dict()
         self._net.train()
 
         optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **Client.OPTIMIZER_PARAMS)
@@ -44,19 +46,14 @@ class GPClient(Client):
                                                "backward")
             loss.backward()
 
-            epoch_size: float = float(len(Y))
-
-            with torch.no_grad():
-                for i, p in self._net.named_parameters():
-                    self._grads[i] += (p.grad.data / epoch_size)
-
             optimizer.step()
             epoch_loss += float(loss)
             del loss, offset_labels
 
         with torch.no_grad():
-            for i, p in self._net.named_parameters():
-                self._grads[i] /= float(num_epochs)
+            curr = self._net.state_dict()
+            for k in curr:
+                self._grads[k] = torch.clone(curr[k]) - torch.clone(backup[k])
 
         del gp.tree
 

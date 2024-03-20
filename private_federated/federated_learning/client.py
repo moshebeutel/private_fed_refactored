@@ -1,3 +1,5 @@
+import logging
+
 import torch.nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
@@ -6,7 +8,7 @@ from private_federated.train.utils import evaluate, clone_model, merge_model
 
 
 class Client:
-    INTERNAL_EPOCHS = 5
+    INTERNAL_EPOCHS = 1
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
     OPTIMIZER_PARAMS = {'lr': 1e-3, 'weight_decay': 1e-3, 'momentum': 0.9}
@@ -28,6 +30,7 @@ class Client:
 
     def _train(self, num_epochs: int = INTERNAL_EPOCHS):
         assert self._net is not None, 'Client must receive net must before '
+        backup = clone_model(self._net).state_dict()
         self._net.train()
 
         criterion = Client.CRITERION
@@ -44,8 +47,10 @@ class Client:
                 loss = criterion(outputs, labels)
                 loss.backward()
 
-                for i, p in self._net.named_parameters():
-                    self._grads[i] += (p.grad.data / batch_size)
+                with torch.no_grad():
+                    for i, p in self._net.named_parameters():
+                        # self._grads[i] += (p.grad.data / batch_size)
+                        self._grads[i] += (p.grad / 1e-3)
 
                 optimizer.step()
 
@@ -55,8 +60,11 @@ class Client:
                 epoch_loss += batch_loss
 
         with torch.no_grad():
-            for i in self._grads:
-                self._grads[i] /= num_epochs
+            curr = self._net.state_dict()
+            for k in curr:
+                self._grads[k] = torch.clone(curr[k]) - torch.clone(backup[k])
+        # acc, loss = evaluate(self._net, self._eval_loader, criterion)
+        # logging.info(f'\ntrain loss: {loss:.4f}, train acc: {acc}')
 
         zero_net_grads(self._net)
 
@@ -69,12 +77,12 @@ class Client:
 
     def merge_server_model_with_personal_model(self, net: torch):
         assert self._net is not None, 'Net not initialized. Nothing to merge to'
-        self._net = merge_model(net, self._net, include_grads=False,
-                                weight1=1 - Client.PERSONALIZATION_WEIGHT,
+        self._net = merge_model(net, self._net, weight1=1 - Client.PERSONALIZATION_WEIGHT,
                                 weight2=Client.PERSONALIZATION_WEIGHT)
 
         self._new_net_updates()
 
+    @torch.no_grad()
     def _new_net_updates(self):
         zero_net_grads(self._net)
         self._grads = get_net_grads(self._net)
