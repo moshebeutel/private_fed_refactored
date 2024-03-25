@@ -39,6 +39,7 @@ def populate_args(args):
     Server.MOMENTUM = args.momentum
 
     GepServer.NUM_BASIS_ELEMENTS = args.embedding_num_bases
+    GepServer.GRADIENTS_HISTORY_SIZE = args.grads_history_size
 
     Config.USE_GP = args.use_gp
     Config.EMBED_GRADS = args.embed_grads
@@ -126,7 +127,10 @@ def get_command_line_arguments(parser):
     parser.add_argument("--num-clients-private", type=int,
                         default=ClientFactory.NUM_CLIENTS_PRIVATE,
                         help="Number of private clients")
-    parser.add_argument("--embedding-num-bases", type=int, default=10, help="Number of basis elements")
+    parser.add_argument("--embedding-num-bases", type=int, default=GepServer.NUM_BASIS_ELEMENTS,
+                        help="Number of embedding subspace basis elements")
+    parser.add_argument("--grads-history-size", type=int, default=GepServer.GRADIENTS_HISTORY_SIZE,
+                        help="Gradients history buffer size")
 
     # DP
     parser.add_argument("--clip", type=float, default=Config.CLIP_VALUE,

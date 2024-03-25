@@ -45,9 +45,11 @@ def sweep_train(sweep_id, args, config=None):
                     f'Client Learning Rate {args.client_learning_rate}')
         if args.embed_grads:
             args.embedding_num_bases = config.gep_num_bases
+            args.grads_history_size = config.grads_history_size
 
             run_name += (f','
                          f'Num Basis Elements {args.embedding_num_bases},'
+                         f'Grads History Size {args.grads_history_size},'
                          f'Num Public Clients {args.num_clients_public}')
 
         logging.info(run_name)
@@ -64,36 +66,44 @@ def run_sweep(args):
     }
     parameters_dict = {
         'noise_multiplier': {
-            # 'values': [25.0, 0.0]
+            # 'values': [0.0, 1.0, 4.0]
             'values': [12.79182, 4.72193, 2.01643, 0.0]
             # 'values': [12.79182, 4.72193, 2.01643, 0.0]
         },
         'embed_grads': {
-            'values': [False, True]
+            'values': [True]
         },
         'use_gp': {
-            'values': [False, True]
+            'values': [False]
+            # 'values': [False, True]
         },
         'num_clients_agg': {
-            'values': [50]
-        },
-        'num_clients_public': {
             'values': [100]
         },
+        'num_clients_public': {
+            # 'values': [100]
+            'values': [100, 150]
+        },
         'gep_num_bases': {
-            'values': [80]
+            'values': [50, 150]
+            # 'values': [80]
+        },
+        'grads_history_size': {
+            'values': [50, 150]
         },
         'clip': {
             'values': [0.001]
+            # 'values': [0.001, 0.01]
         },
         'seed': {
-            'values': [50, 150]
+            'values': [100]
         },
         'num_private_clients': {
-            'values': [1000]
+            'values': [700]
         },
         'model_name': {
-            'values': ['resnet20']
+            'values': ['resnet8']
+            # 'values': ['resnet20', 'resnet8']
         },
         'classes_per_user': {
             'values': [2]
@@ -105,9 +115,8 @@ def run_sweep(args):
             'values': [0.001]
         },
         'server_learning_rate': {
-            'values': [0.001]
+            'values': [0.5]
         }
-
     }
 
     parameters_dict.update({
