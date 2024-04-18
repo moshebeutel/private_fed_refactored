@@ -78,7 +78,7 @@ def get_clients_factory_type(args):
 def build_all(args) -> Server:
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
     clients_factory = get_clients_factory_type(args)(dataset_factory)
-    models_factory_fn = ModelFactory(args.model_name).get_model
+    models_factory_fn = ModelFactory(args.model_name, len(dataset_factory.train_set.dataset.classes)).get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
     return server

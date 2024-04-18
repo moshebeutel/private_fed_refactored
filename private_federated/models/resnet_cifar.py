@@ -122,57 +122,57 @@ def resnet20(num_classes=10):
     return model
 
 
-def resnet32():
+def resnet32(num_classes=10):
     """Constructs a ResNet-32 model.
 
     """
-    model = ResNet(BasicBlock, [5, 5, 5])
+    model = ResNet(BasicBlock, [5, 5, 5], num_classes=num_classes)
     return model
 
 
-def resnet44():
+def resnet44(num_classes=10):
     """Constructs a ResNet-44 model.
 
     """
-    model = ResNet(BasicBlock, [7, 7, 7])
+    model = ResNet(BasicBlock, [7, 7, 7], num_classes=num_classes)
     return model
 
 
-def resnet56():
+def resnet56(num_classes=10):
     """Constructs a ResNet-56 model.
 
     """
-    model = ResNet(BasicBlock, [9, 9, 9])
+    model = ResNet(BasicBlock, [9, 9, 9], num_classes=num_classes)
     return model
 
 
-def resnet110():
+def resnet110(num_classes=10):
     """Constructs a ResNet-110 model.
 
     """
-    model = ResNet(BasicBlock, [18, 18, 18])
+    model = ResNet(BasicBlock, [18, 18, 18], num_classes=num_classes)
     return model
 
 
-def resnet1202():
+def resnet1202(num_classes=10):
     """Constructs a ResNet-1202 model.
 
     """
-    model = ResNet(BasicBlock, [200, 200, 200])
+    model = ResNet(BasicBlock, [200, 200, 200], num_classes=num_classes)
     return model
 
 
-def resnet8():
+def resnet8(num_classes=10):
     """Constructs a ResNet-8 model.
 
     """
-    model = ResNet(BasicBlock, [1, 1, 1])
+    model = ResNet(BasicBlock, [1, 1, 1], num_classes=num_classes)
     return model
 
 
-def resnet14():
+def resnet14(num_classes=10):
     """Constructs a ResNet-14 model.
 
     """
-    model = ResNet(BasicBlock, [2, 2, 2])
+    model = ResNet(BasicBlock, [2, 2, 2], num_classes=num_classes)
     return model

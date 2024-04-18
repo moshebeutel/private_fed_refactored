@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 
 import torch.nn
 from torch import nn
@@ -30,9 +31,9 @@ class ModelFactory:
                     m.bias.data.zero_()
         return model
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, num_classes: int):
         assert model_name in self.MODEL_HUB.keys(), 'Unknown model name: {}'.format(model_name)
-        self.model_fn = ModelFactory.MODEL_HUB[model_name]
+        self.model_fn = partial(ModelFactory.MODEL_HUB[model_name], num_classes=num_classes)
 
     def get_model(self) -> nn.Module:
         model = self.model_fn()

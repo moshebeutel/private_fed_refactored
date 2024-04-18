@@ -5,7 +5,8 @@ from private_federated.models.model_factory import ModelFactory
 
 @torch.no_grad()
 def clone_model(model: torch.nn.Module) -> torch.nn.Module:
-    cloned_model = ModelFactory(Config.MODEL_NAME).get_model()
+    num_classes: int = [p[1] for p in model.named_modules()][-1].out_features
+    cloned_model = ModelFactory(Config.MODEL_NAME, num_classes).get_model()
     cloned_model.load_state_dict(model.state_dict())
     return cloned_model
 
@@ -15,7 +16,8 @@ def merge_model(model1: torch.nn.Module,
                 model2: torch.nn.Module,
                 weight1: float = 0.5,
                 weight2: float = 0.5) -> torch.nn.Module:
-    cloned_model = ModelFactory(Config.MODEL_NAME).get_model()
+    num_classes: int = [p[1] for p in model1.named_modules()][-1].out_features
+    cloned_model = ModelFactory(Config.MODEL_NAME, num_classes).get_model()
     dict1 = model1.state_dict()
     dict2 = model2.state_dict()
     target_dict = cloned_model.state_dict()
