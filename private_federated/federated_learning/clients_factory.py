@@ -119,3 +119,17 @@ class ClientFactory(Generic[T]):
 class NetClientsFactory(ClientFactory[Client]):
     def _get_client_type(self):
         return Client
+
+
+class RecordedDatasetClientFactory(ClientFactory):
+    def __init__(self, dataset_factory: DatasetFactory):
+
+        ClientFactory.NUM_CLIENTS_PUBLIC = 8
+        ClientFactory.NUM_CLIENTS_VAL = 4
+        ClientFactory.NUM_CLIENTS_TEST = 8
+        ClientFactory.NUM_ALL_USERS = 44
+        ClientFactory.NUM_CLIENTS_PRIVATE = ClientFactory.NUM_ALL_USERS - ClientFactory.NUM_CLIENTS_VAL \
+                                            - ClientFactory.NUM_CLIENTS_TEST - ClientFactory.NUM_CLIENTS_PUBLIC
+
+        logging.info(f"Number of private clients: {ClientFactory.NUM_CLIENTS_PRIVATE} ")
+

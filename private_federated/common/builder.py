@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.common.config import Config
 from private_federated.data.dataset_factory import DatasetFactory
-from private_federated.data.loaders_generator import DataLoadersGenerator
+from private_federated.data.loaders_generator import DataLoadersGenerator, EMGDataLoadersGenerator
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.clients_factory import ClientFactory, NetClientsFactory
@@ -75,8 +75,14 @@ def get_clients_factory_type(args):
     return GPClientFactory if args.use_gp else NetClientsFactory
 
 
+def get_loader_generator(args, users, datasets):
+    return EMGDataLoadersGenerator(users=users, datasets=datasets) if "EMG" in args.dataset_name \
+        else DataLoadersGenerator(users=users, datasets=datasets)
+
+
 def build_all(args) -> Server:
     dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
+    loader_generator = get_loader_generator(args, users=args.users, datasets=args.datasets)
     clients_factory = get_clients_factory_type(args)(dataset_factory)
     models_factory_fn = ModelFactory(args.model_name, len(dataset_factory.train_set.dataset.classes)).get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
