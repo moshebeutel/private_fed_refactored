@@ -1,5 +1,7 @@
 from pathlib import Path
 import torch
+from torch import Tensor
+from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10, CIFAR100
 from torchvision.transforms import transforms
 
@@ -38,6 +40,9 @@ class DatasetFactory:
         train_size = len(dataset) - val_size
         self._train_set, self._val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
 
+    def dataset_ctor(self, ctor_fn, root, train=True, download=True, transform=None):
+        return ctor_fn(root, train=train, download=download, transform=transform)
+
     @property
     def train_set(self):
         return self._train_set
@@ -49,3 +54,54 @@ class DatasetFactory:
     @property
     def test_set(self):
         return self._test_set
+
+
+class PutEMGDataset(Dataset):
+    def __init__(self, root: str, user: str, split: str = 'train', device: str = 'cpu'):
+        self._root_path: Path = Path(root) / f'{int(user):02}'
+        self._root = self._root_path.as_posix()
+        assert split in ['train', 'val', 'test'], f'Expected split name one of train, val, test'
+        self._split: str = split
+        self._X_file_path = self._root_path / f'X_{split}.pt'
+        self._y_file_path = self._root_path / f'y_{split}.pt'
+        assert self._X_file_path.exists() and self._y_file_path.exists(), f'Expected {self._X_file_path} file and {self._y_file_path} file'
+        X = torch.load(self._X_file_path.as_posix(), map_location=torch.device('cpu'), mmap=True)
+        y = torch.load(self._y_file_path.as_posix(), map_location=torch.device('cpu'), mmap=True)
+        assert X.shape[0] == y.shape[0], 'X and y should have the same number of samples'
+        self._len = X.shape[0]
+        del X, y
+        self._device = device
+
+    def __len__(self):
+        return self._len
+
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
+        assert 0 < index < self._len, f'Index {index} out of [0, {self._len}]'
+        X: Tensor = torch.load(self._X_file_path.as_posix(), map_location=torch.device(self._device))
+        y: Tensor = torch.load(self._y_file_path.as_posix(), map_location=torch.device(self._device))
+        ret_X: Tensor = torch.clone(X[index])
+        ret_y: Tensor = torch.clone(y[index])
+        X.cpu(), y.cpu()
+        del X, y
+        return ret_X, ret_y
+
+
+class PutEMGDatasetFactory(DatasetFactory):
+
+    def dataset_ctor(self, ctor_fn, root, train=True, download=True, transform=None):
+        return ctor_fn(root, train=train, download=download, transform=transform)
+
+
+if __name__ == '__main__':
+    root_path = Path.home() / 'datasets/EMG/putEMG/tensors'
+    assert root_path.exists(), f'Expected root path to be {root_path}'
+    root = root_path.as_posix()
+    ds = PutEMGDataset(root=root, user='3', split='train', device='cuda')
+
+    print(ds.__len__())
+    print(ds.__getitem__(1))
+    print(len(ds))
+
+    loader = torch.utils.data.DataLoader(ds, batch_size=4, shuffle=True)
+    for X, y in loader:
+        print(X.shape, y.shape)

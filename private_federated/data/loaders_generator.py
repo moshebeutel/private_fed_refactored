@@ -1,4 +1,10 @@
+from pathlib import Path
+
+import torch.utils.data
 from torch.utils.data import Dataset
+
+from private_federated.common.config import Config
+from private_federated.data.dataset_factory import PutEMGDataset
 from private_federated.data.random_data_split import gen_random_loaders
 
 
@@ -36,3 +42,16 @@ class DataLoadersGenerator:
     @property
     def users_test_loaders(self):
         return {u: self._users_loaders[u]['test'] for u in self._users_loaders}
+
+
+class EMGDataLoadersGenerator(DataLoadersGenerator):
+    ROOT = Path.home() / 'datasets/EMG/putEMG/tensors'
+
+    def __init__(self, users: list[str], datasets: list[Dataset]):
+        super().__init__(users, datasets)
+        root = EMGDataLoadersGenerator.ROOT.as_posix()
+        self._users_loaders = {user: {split: torch.utils.data.DataLoader(
+            PutEMGDataset(root=root, user=user, split=split, device=Config.DEVICE),
+            shuffle=(split == 'train'), batch_size=DataLoadersGenerator.BATCH_SIZE)
+            for split in ['train', 'validation', 'test']}
+            for user in users}

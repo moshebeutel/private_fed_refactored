@@ -85,7 +85,9 @@ class ClientFactory(Generic[T]):
         train_loaders = loaders_generator.users_loaders
         eval_loaders = loaders_generator.users_test_loaders
         loaders = {cid: {'train': train_loaders[cid], 'eval': eval_loaders[cid]} for cid in train_loaders}
-        self._clients = [self._get_client_type()(cid=cid, train_loader=loaders[cid]['train'], eval_loader=loaders[cid]['eval'])
+        self._clients = [self._get_client_type()(cid=cid,
+                                                 train_loader=loaders[cid]['train'],
+                                                 eval_loader=loaders[cid]['eval'])
                          for cid in loaders]
 
     @staticmethod
