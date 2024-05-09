@@ -15,7 +15,7 @@ from private_federated.train.utils import clone_model, merge_model, evaluate
 
 class Server:
     NUM_ROUNDS = 30
-    NUM_CLIENT_AGG: int = 5
+    NUM_CLIENT_AGG: int = 3
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = False
     LEARNING_RATE: float = 1.0
     WEIGHT_DECAY: float = 1e-3
@@ -97,7 +97,7 @@ class Server:
         self._sampled_clients = self._sample_fn(self._train_clients, k=Server.NUM_CLIENT_AGG)
         self._sampled_clients_history.extend(self._sampled_clients)
         self._sampled_clients_history = list(set(self._sampled_clients_history))
-        logging.debug(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
+        logging.info(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
 
     def _preform_train_round(self, clients: list[Client]):
         """
@@ -106,7 +106,9 @@ class Server:
         """
         assert clients, f'Expected clients list. Got {len(clients)} clients'
         for c in clients:
+            logging.info(f'Client {c.cid} train round...')
             c.receive_net_from_server(net=self._net)
+            logging.info(f'Client {c.cid} before train')
             c.train()
 
     def _get_clients_grads(self, clients: list[Client]) -> torch.Tensor:

@@ -1,39 +1,27 @@
-from pathlib import Path
-
-import torch.utils.data
-from torch.utils.data import Dataset
-
-from private_federated.common.config import Config
-from private_federated.data.dataset_factory import PutEMGDataset
-from private_federated.data.random_data_split import gen_random_loaders
+import logging
+from torch.utils.data import Dataset, DataLoader
 
 
 class DataLoadersGenerator:
-    CLASSES_PER_USER = 10
-    BATCH_SIZE = 16
+    BATCH_SIZE = 64
+    PIN_MEMORY = False
+    NUM_WORKERS = 2
 
-    def __init__(self, users: list[str], datasets: list[Dataset]):
-        loaders, cls_partitions = gen_random_loaders(num_users=len(users),
-                                                     bz=DataLoadersGenerator.BATCH_SIZE,
-                                                     classes_per_user=DataLoadersGenerator.CLASSES_PER_USER,
-                                                     datasets=datasets)
+    def __init__(self, users_datasets: dict[str, dict[str, Dataset]]):
+        loader_params = {"batch_size": DataLoadersGenerator.BATCH_SIZE,
+                         "pin_memory": DataLoadersGenerator.PIN_MEMORY,
+                         "num_workers": DataLoadersGenerator.NUM_WORKERS}
 
-        self._users_loaders = {user: {'train': train_loader, 'validation': validation_loader, 'test': test_loader}
-                               for user, train_loader, validation_loader, test_loader in
-                               zip(users, loaders[0], loaders[1], loaders[2])}
-        # self._users_loaders = {user: {'train': train_loader}
-        #                        for user, train_loader in
-        #                        zip(users, loaders[0])}
-        self._users_class_partitions = {user: (cls, prb) for (user, cls, prb) in
-                                        zip(users, cls_partitions['class'], cls_partitions['prob'])}
+        self._users_loaders = {user: {split: DataLoader(users_datasets[user][split],
+                                                        **{**loader_params, 'shuffle': (split == 'train')})
+                                      for split in users_datasets[user]}
+                               for user in users_datasets}
+
+        logging.info(f'Generated {list(self._users_loaders.keys())} loaders.')
 
     @property
     def users_loaders(self):
         return {u: self._users_loaders[u]['train'] for u in self._users_loaders}
-
-    @property
-    def users_class_partitions(self):
-        return self._users_class_partitions
 
     @property
     def users_validation_loaders(self):
@@ -43,15 +31,3 @@ class DataLoadersGenerator:
     def users_test_loaders(self):
         return {u: self._users_loaders[u]['test'] for u in self._users_loaders}
 
-
-class EMGDataLoadersGenerator(DataLoadersGenerator):
-    ROOT = Path.home() / 'datasets/EMG/putEMG/tensors'
-
-    def __init__(self, users: list[str], datasets: list[Dataset]):
-        super().__init__(users, datasets)
-        root = EMGDataLoadersGenerator.ROOT.as_posix()
-        self._users_loaders = {user: {split: torch.utils.data.DataLoader(
-            PutEMGDataset(root=root, user=user, split=split, device=Config.DEVICE),
-            shuffle=(split == 'train'), batch_size=DataLoadersGenerator.BATCH_SIZE)
-            for split in ['train', 'validation', 'test']}
-            for user in users}

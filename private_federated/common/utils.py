@@ -45,9 +45,9 @@ def populate_args(args):
     Config.EMBED_GRADS = args.embed_grads
     Config.CLIP_VALUE = args.clip
     Config.NOISE_MULTIPLIER = args.noise_multiplier
-    Config.DEVICE = torch.device(
-            "cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu"
-        )
+    # Config.DEVICE = torch.device(
+    #         "cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu"
+    #     )
 
     logging.info({**to_dict(ModelFactory),
                   **to_dict(DataLoadersGenerator),
@@ -76,7 +76,7 @@ def get_command_line_arguments(parser):
     # Data
     parser.add_argument("--data-path", type=str, default=f"{str(Path.home())}/datasets/",
                         help="dir path for datafolder")
-    parser.add_argument("--dataset-name", type=str, default=f"CIFAR10",
+    parser.add_argument("--dataset-name", type=str, default=f"putEMG",
                         choices=[DatasetFactory.DATASETS_HUB.keys()],
                         help="Name of dataset (CIFAR10, CIFAR100 ...)")
 
@@ -90,7 +90,7 @@ def get_command_line_arguments(parser):
                              " preform internally before"
                              " returning grads")
 
-    parser.add_argument("--classes_per_user", type=int, default=DataLoadersGenerator.CLASSES_PER_USER,
+    parser.add_argument("--classes_per_user", type=int, default=DatasetFactory.CLASSES_PER_USER,
                         help="Number of data classes each user knows")
     parser.add_argument("--sample-with-replacement", type=bool, default=Server.SAMPLE_CLIENTS_WITH_REPLACEMENT,
                         help="Sampling with or without replacement")

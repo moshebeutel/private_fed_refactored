@@ -5,11 +5,12 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from private_federated.aggregation_strategies.average_strategy import AverageStrategy
 from private_federated.common.config import Config
-from private_federated.data.dataset_factory import DatasetFactory
-from private_federated.data.loaders_generator import DataLoadersGenerator, EMGDataLoadersGenerator
+from private_federated.data.dataset_factory import DatasetFactory, PutEMGDatasetFactory
+from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.differential_privacy.dp_sgd.dp_sgd_aggregation_starategy import DpSgdAggregationStrategy
 from private_federated.differential_privacy.gep.gep_server import GepServer
-from private_federated.federated_learning.clients_factory import ClientFactory, NetClientsFactory
+from private_federated.federated_learning.clients_factory import ClientFactory, NetClientsFactory, \
+    RecordedDatasetClientFactory
 from private_federated.federated_learning.gp_client_factory import GPClientFactory
 from private_federated.federated_learning.server import Server
 from private_federated.models.model_factory import ModelFactory
@@ -72,19 +73,25 @@ def get_server_type() -> str:
 
 
 def get_clients_factory_type(args):
-    return GPClientFactory if args.use_gp else NetClientsFactory
+    if 'EMG' not in args.dataset_name:
+        return GPClientFactory if args.use_gp else NetClientsFactory
+    else:
+        return RecordedDatasetClientFactory
 
 
-def get_loader_generator(args, users, datasets):
-    return EMGDataLoadersGenerator(users=users, datasets=datasets) if "EMG" in args.dataset_name \
-        else DataLoadersGenerator(users=users, datasets=datasets)
+def get_dataset_factory_type(args):
+    return PutEMGDatasetFactory if 'EMG' in args.dataset_name else DatasetFactory
 
 
 def build_all(args) -> Server:
-    dataset_factory = DatasetFactory(dataset_name=args.dataset_name)
-    loader_generator = get_loader_generator(args, users=args.users, datasets=args.datasets)
-    clients_factory = get_clients_factory_type(args)(dataset_factory)
-    models_factory_fn = ModelFactory(args.model_name, len(dataset_factory.train_set.dataset.classes)).get_model
+    clients_factory = get_clients_factory_type(args)()
+    dataset_factory = get_dataset_factory_type(args)(dataset_name=args.dataset_name,
+                                                     users=clients_factory.all_users_list)
+    loader_generator = DataLoadersGenerator(users_datasets=dataset_factory.users_subsets)
+    clients_factory.create(data_loaders={'train': loader_generator.users_loaders,
+                                         'eval': loader_generator.users_test_loaders})
+
+    models_factory_fn = ModelFactory(args.model_name, len(dataset_factory.classes)).get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
     return server

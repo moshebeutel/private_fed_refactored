@@ -1,10 +1,9 @@
 import logging
 from functools import partial
-
 import torch.nn
 from torch import nn
-
 from private_federated.common.config import Config
+from private_federated.models.model3d import Model3d
 from private_federated.models.resnet_cifar import resnet20, resnet32, resnet14, resnet8, resnet44
 
 
@@ -13,7 +12,8 @@ class ModelFactory:
                  'resnet14': resnet14,
                  'resnet20': resnet20,
                  'resnet32': resnet32,
-                 'resnet44': resnet44}
+                 'resnet44': resnet44,
+                 'Model3d': Model3d}
 
     @staticmethod
     def get_model_hub_names():

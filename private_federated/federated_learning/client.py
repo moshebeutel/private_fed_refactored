@@ -36,10 +36,15 @@ class Client:
         criterion = Client.CRITERION
         optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **Client.OPTIMIZER_PARAMS)
 
+        total_loss = 0
+
+        logging.info(f'Client {self.cid} Before train loop')
+
         for epoch in range(num_epochs):
             epoch_loss: float = 0.0
             for images, labels in self._train_loader:
                 images, labels = images.to(self._device), labels.to(self._device)
+                logging.info(f'Client {self.cid} in train loop epoch {epoch} got images: {images.shape} labels: {labels.shape}')
                 batch_size: int = len(labels)
                 optimizer.zero_grad()
 
@@ -58,13 +63,14 @@ class Client:
 
                 del loss, images, labels
                 epoch_loss += batch_loss
+                total_loss += epoch_loss / num_epochs
 
         with torch.no_grad():
             curr = self._net.state_dict()
             for k in curr:
                 self._grads[k] = torch.clone(curr[k]) - torch.clone(backup[k])
         # acc, loss = evaluate(self._net, self._eval_loader, criterion)
-        # logging.info(f'\ntrain loss: {loss:.4f}, train acc: {acc}')
+        logging.info(f'\nClient {self.cid} train loss: {total_loss:.4f}')
 
         zero_net_grads(self._net)
 
@@ -72,8 +78,11 @@ class Client:
         return evaluate(net=self._net, loader=self._eval_loader, criterion=Client.CRITERION)
 
     def receive_net_from_server(self, net: torch.nn.Module):
+        logging.info(f'Client {self.cid} receive net from server')
         self._net = clone_model(net)
+        logging.info(f'Client {self.cid} receive net from server after clone model')
         self._new_net_updates()
+        logging.info(f'Client {self.cid} receive net from server after new net updates')
 
     def merge_server_model_with_personal_model(self, net: torch):
         assert self._net is not None, 'Net not initialized. Nothing to merge to'

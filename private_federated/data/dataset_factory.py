@@ -1,18 +1,22 @@
 from pathlib import Path
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10, CIFAR100
 from torchvision.transforms import transforms
 
+from private_federated.common.config import Config
+from private_federated.data.put_emg_dataset import PutEMGDataset
+from private_federated.data.utils import gen_random_subsets
+
 
 class DatasetFactory:
-    DATASETS_HUB = {'CIFAR10': CIFAR10, 'CIFAR100': CIFAR100}
+    DATASETS_HUB = {'CIFAR10': CIFAR10, 'CIFAR100': CIFAR100, 'putEMG': PutEMGDataset}
     DATASETS_DIR = f"{str(Path.home())}/datasets/"
     NORMALIZATIONS = {'CIFAR10': transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                       'CIFAR100': transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))}
+    CLASSES_PER_USER = 10
 
-    def __init__(self, dataset_name):
+    def __init__(self, dataset_name: str, users: list[str]):
         assert dataset_name in DatasetFactory.DATASETS_HUB, (f'Expected dataset name one of'
                                                              f' {DatasetFactory.DATASETS_HUB.keys()}.'
                                                              f' Got {dataset_name}')
@@ -29,74 +33,80 @@ class DatasetFactory:
             transform=transform
         )
 
-        self._test_set = dataset_ctor(
+        test_set = dataset_ctor(
             root=dataset_dir,
             train=False,
             download=True,
             transform=transform
         )
 
-        val_size = len(self._test_set)  # 10000
+        val_size = len(test_set)  # 10000
         train_size = len(dataset) - val_size
-        self._train_set, self._val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
+        train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
+
+        subsets, cls_partitions = gen_random_subsets(num_users=len(users),
+                                                     classes_per_user=DatasetFactory.CLASSES_PER_USER,
+                                                     datasets=[train_set, val_set, test_set])
+
+        self._users_subsets = {user: {'train': train_subset, 'validation': validation_subset, 'test': test_subset}
+                               for user, train_subset, validation_subset, test_subset in
+                               zip(users, subsets[0], subsets[1], subsets[2])}
+
+        self._users_class_partitions = {user: (cls, prb) for (user, cls, prb) in
+                                        zip(users, cls_partitions['class'], cls_partitions['prob'])}
 
     def dataset_ctor(self, ctor_fn, root, train=True, download=True, transform=None):
         return ctor_fn(root, train=train, download=download, transform=transform)
+
+    @property
+    def users_subsets(self):
+        return self._users_subsets
+
+    @property
+    def users_class_partitions(self):
+        return self._users_class_partitions
 
     @property
     def train_set(self):
-        return self._train_set
+        return {u: self._users_subsets[u]['train'] for u in self._users_subsets}
 
     @property
     def val_set(self):
-        return self._val_set
+        return {u: self._users_subsets[u]['validation'] for u in self._users_subsets}
 
     @property
     def test_set(self):
-        return self._test_set
+        return {u: self._users_subsets[u]['test'] for u in self._users_subsets}
 
-
-class PutEMGDataset(Dataset):
-    def __init__(self, root: str, user: str, split: str = 'train', device: str = 'cpu'):
-        self._root_path: Path = Path(root) / f'{int(user):02}'
-        self._root = self._root_path.as_posix()
-        assert split in ['train', 'val', 'test'], f'Expected split name one of train, val, test'
-        self._split: str = split
-        self._X_file_path = self._root_path / f'X_{split}.pt'
-        self._y_file_path = self._root_path / f'y_{split}.pt'
-        assert self._X_file_path.exists() and self._y_file_path.exists(), f'Expected {self._X_file_path} file and {self._y_file_path} file'
-        X = torch.load(self._X_file_path.as_posix(), map_location=torch.device('cpu'), mmap=True)
-        y = torch.load(self._y_file_path.as_posix(), map_location=torch.device('cpu'), mmap=True)
-        assert X.shape[0] == y.shape[0], 'X and y should have the same number of samples'
-        self._len = X.shape[0]
-        del X, y
-        self._device = device
-
-    def __len__(self):
-        return self._len
-
-    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
-        assert 0 < index < self._len, f'Index {index} out of [0, {self._len}]'
-        X: Tensor = torch.load(self._X_file_path.as_posix(), map_location=torch.device(self._device))
-        y: Tensor = torch.load(self._y_file_path.as_posix(), map_location=torch.device(self._device))
-        ret_X: Tensor = torch.clone(X[index])
-        ret_y: Tensor = torch.clone(y[index])
-        X.cpu(), y.cpu()
-        del X, y
-        return ret_X, ret_y
+    @property
+    def classes(self):
+        return self.train_set.dataset.classes
 
 
 class PutEMGDatasetFactory(DatasetFactory):
+    def __init__(self, dataset_name: str, users: list[str]):
+        dataset_ctor = DatasetFactory.DATASETS_HUB[dataset_name]
+        DatasetFactory.CLASSES_PER_USER = 8
+        root_path = Path.home() / 'datasets/EMG/putEMG/tensors'
+        assert root_path.exists(), f'Expected root path to be {root_path}'
+        root = root_path.as_posix()
+        self._users_subsets = {user: {split: PutEMGDataset(root=root, user=user, split=split, device='cuda')
+                                      for split in ['train', 'validation', 'test']}
+                               for user in users}
 
     def dataset_ctor(self, ctor_fn, root, train=True, download=True, transform=None):
         return ctor_fn(root, train=train, download=download, transform=transform)
+
+    @property
+    def classes(self):
+        return [0, 1, 2, 3, 6, 7, 8, 9]
 
 
 if __name__ == '__main__':
     root_path = Path.home() / 'datasets/EMG/putEMG/tensors'
     assert root_path.exists(), f'Expected root path to be {root_path}'
     root = root_path.as_posix()
-    ds = PutEMGDataset(root=root, user='3', split='train', device='cuda')
+    ds = PutEMGDataset(root=root, user='3', split='train', device=Config.DEVICE)
 
     print(ds.__len__())
     print(ds.__getitem__(1))
