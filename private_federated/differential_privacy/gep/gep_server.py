@@ -11,8 +11,8 @@ from private_federated.federated_learning.server import Server
 
 
 class GepServer(Server):
-    NUM_BASIS_ELEMENTS = 80
-    GRADIENTS_HISTORY_SIZE = 200
+    NUM_BASIS_ELEMENTS = 8
+    GRADIENTS_HISTORY_SIZE = 16
 
     def __init__(self,
                  public_clients: list[Client],

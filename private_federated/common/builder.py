@@ -13,7 +13,7 @@ from private_federated.federated_learning.clients_factory import ClientFactory, 
     RecordedDatasetClientFactory
 from private_federated.federated_learning.gp_client_factory import GPClientFactory
 from private_federated.federated_learning.server import Server
-from private_federated.models.model_factory import ModelFactory
+from private_federated.models.model_factory import ModelFactory, LoadWeightsModelFactory
 
 
 def get_aggregation_strategy(args):
@@ -91,7 +91,7 @@ def build_all(args) -> Server:
     clients_factory.create(data_loaders={'train': loader_generator.users_loaders,
                                          'eval': loader_generator.users_test_loaders})
 
-    models_factory_fn = ModelFactory(args.model_name, len(dataset_factory.classes)).get_model
+    models_factory_fn = LoadWeightsModelFactory(args.model_name, len(dataset_factory.classes), weights_path='/home/user1/saved_models/putEMG/model3d/round_1_acc_0.1317.pt').get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
     return server

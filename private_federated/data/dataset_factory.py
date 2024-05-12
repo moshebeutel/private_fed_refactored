@@ -1,6 +1,6 @@
 from pathlib import Path
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, TensorDataset
 from torchvision.datasets import CIFAR10, CIFAR100
 from torchvision.transforms import transforms
 
@@ -87,12 +87,19 @@ class PutEMGDatasetFactory(DatasetFactory):
     def __init__(self, dataset_name: str, users: list[str]):
         dataset_ctor = DatasetFactory.DATASETS_HUB[dataset_name]
         DatasetFactory.CLASSES_PER_USER = 8
-        root_path = Path.home() / 'datasets/EMG/putEMG/tensors'
+        root_path = Path.home() / 'datasets/EMG/putEMG/windowed'
         assert root_path.exists(), f'Expected root path to be {root_path}'
         root = root_path.as_posix()
-        self._users_subsets = {user: {split: PutEMGDataset(root=root, user=user, split=split, device='cuda')
-                                      for split in ['train', 'validation', 'test']}
-                               for user in users}
+        # self._users_subsets = {user: {split: PutEMGDataset(root=root, user=user, split=split, device='cuda')
+        #                               for split in ['train', 'validation', 'test']}
+        #                        for user in users}
+        self._users_subsets = {
+            user:
+                {split:
+                     TensorDataset(torch.load((root_path / f'{int(user):02}' / f'X_{split}_windowed.pt').as_posix()).float(),
+                                   torch.load((root_path / f'{int(user):02}' / f'y_{split}_windowed.pt').as_posix()).long())
+                 for split in ['train', 'validation', 'test']}
+            for user in users}
 
     def dataset_ctor(self, ctor_fn, root, train=True, download=True, transform=None):
         return ctor_fn(root, train=train, download=download, transform=transform)

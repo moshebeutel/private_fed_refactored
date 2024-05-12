@@ -135,11 +135,15 @@ class RecordedDatasetClientFactory(NetClientsFactory):
 
     def _create_users_lists(self):
         self.public_users = [('%d' % i).zfill(4) for i in [3, 4, 5, 6, 7, 8, 9, 10]]
+        # self.public_users = []
+        # self.train_user_list = [('%d' % i).zfill(4) for i in [3, 4, 5, 6, 7, 8, 9, 10]]
         self.train_user_list = [('%d' % i).zfill(4) for i in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                                                               22, 23, 24, 25, 26, 27, 29, 30, 31, 33]]
         self.validation_user_list = [('%d' % i).zfill(4) for i in [39, 42, 43, 45]]
         self.test_user_list = [('%d' % i).zfill(4) for i in [46, 47, 48, 34, 35, 36, 38]]
         self.dummy_users = []
+        # self.dummy_users = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        #                                                       22, 23, 24, 25, 26, 27, 29, 30, 31, 33]
 
     def _get_client_type(self):
         return Client

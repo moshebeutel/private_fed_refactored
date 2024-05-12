@@ -3,9 +3,9 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class DataLoadersGenerator:
-    BATCH_SIZE = 64
+    BATCH_SIZE = 16
     PIN_MEMORY = False
-    NUM_WORKERS = 2
+    NUM_WORKERS = 8
 
     def __init__(self, users_datasets: dict[str, dict[str, Dataset]]):
         loader_params = {"batch_size": DataLoadersGenerator.BATCH_SIZE,

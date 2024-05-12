@@ -1,5 +1,6 @@
 import logging
 import random
+from pathlib import Path
 from typing import Callable
 import torch.nn
 import wandb
@@ -15,11 +16,12 @@ from private_federated.train.utils import clone_model, merge_model, evaluate
 
 class Server:
     NUM_ROUNDS = 30
-    NUM_CLIENT_AGG: int = 3
+    NUM_CLIENT_AGG: int = 8
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = False
-    LEARNING_RATE: float = 1.0
+    LEARNING_RATE: float = 0.2
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
+    MODEL_SAVE_PATH: Path = Path.home() / 'saved_models/putEMG/model3d'
 
     def __init__(self,
                  train_clients: list[Client],
@@ -53,6 +55,8 @@ class Server:
         self._best_val_acc: float = 0.0
         self._best_round: int = 0
         self._progress_bar = tqdm(range(Server.NUM_ROUNDS))
+        self._lr = Server.LEARNING_RATE
+        self._model_save_path = Server.MODEL_SAVE_PATH
 
     def federated_learn(self):
         """
@@ -60,11 +64,16 @@ class Server:
         """
         # main federated learning loop
         for federated_train_round in self._progress_bar:
+            logging.info(f'\nFederated training round {federated_train_round}')
+
             self._federated_round()
 
             self._check_best_round(federated_train_round)
 
             self._update_progress_bar_desc(federated_train_round)
+
+            torch.save(self._net.state_dict(), (self._model_save_path /
+                                                f'round_{federated_train_round}_acc_{self._last_val_acc:.4f}.pt').as_posix())
 
         self._test_net()
 
@@ -108,7 +117,7 @@ class Server:
         for c in clients:
             logging.info(f'Client {c.cid} train round...')
             c.receive_net_from_server(net=self._net)
-            logging.info(f'Client {c.cid} before train')
+            logging.debug(f'Client {c.cid} before train')
             c.train()
 
     def _get_clients_grads(self, clients: list[Client]) -> torch.Tensor:
@@ -121,7 +130,7 @@ class Server:
         for k in self._grads.keys():
             layer_grad_batch = torch.stack([torch.clone(c.grads[k]) for c in clients])
             layer_grad_batch_list.append(layer_grad_batch)
-        grad_batch_flattened = flatten_tensor(layer_grad_batch_list)
+        grad_batch_flattened = flatten_tensor(layer_grad_batch_list).nan_to_num()
         return grad_batch_flattened
 
     def _get_sampled_clients_grads(self) -> torch.Tensor:
@@ -168,8 +177,9 @@ class Server:
 
         grads_model = clone_model(self._net)
         grads_model.load_state_dict(self._grads)
+        self._lr = max(0.1, self._lr - 0.1)
         self._net = merge_model(model1=self._net, model2=grads_model,
-                                weight1=1-Server.LEARNING_RATE, weight2=Server.LEARNING_RATE)
+                                weight1=1 - self._lr, weight2=self._lr)
 
     def _evaluate_server_model(self):
         """

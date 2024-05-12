@@ -1,5 +1,4 @@
 import logging
-
 import torch.nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
@@ -8,10 +7,11 @@ from private_federated.train.utils import evaluate, clone_model, merge_model
 
 
 class Client:
-    INTERNAL_EPOCHS = 1
+    INTERNAL_EPOCHS = 4
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
-    OPTIMIZER_PARAMS = {'lr': 1e-3, 'weight_decay': 1e-3, 'momentum': 0.9}
+    LEARNING_RATE = 1e-2
+    OPTIMIZER_PARAMS = {'weight_decay': 1e-3, 'momentum': 0.9}
     PERSONALIZATION_WEIGHT = 0.1
 
     def __init__(self, cid: int, train_loader: DataLoader, eval_loader: DataLoader = None):
@@ -21,6 +21,7 @@ class Client:
         self._grads = {}
         self._net = None
         self._device = None
+        self._lr = Client.LEARNING_RATE
 
     def train(self):
         self._train(num_epochs=Client.INTERNAL_EPOCHS)
@@ -34,43 +35,53 @@ class Client:
         self._net.train()
 
         criterion = Client.CRITERION
-        optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **Client.OPTIMIZER_PARAMS)
+        self._lr *= 0.75
+        optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **{'lr': self._lr, **Client.OPTIMIZER_PARAMS})
 
         total_loss = 0
 
-        logging.info(f'Client {self.cid} Before train loop')
+        logging.debug(f'Client {self.cid} Before train loop')
 
         for epoch in range(num_epochs):
             epoch_loss: float = 0.0
             for images, labels in self._train_loader:
                 images, labels = images.to(self._device), labels.to(self._device)
-                logging.info(f'Client {self.cid} in train loop epoch {epoch} got images: {images.shape} labels: {labels.shape}')
+                logging.debug(f'Client {self.cid} in train loop epoch {epoch} got images: {images.shape} labels: {labels.shape}')
                 batch_size: int = len(labels)
                 optimizer.zero_grad()
 
                 outputs = self._net(images)
+                labels[labels > 5] -= 2
                 loss = criterion(outputs, labels)
                 loss.backward()
 
-                with torch.no_grad():
-                    for i, p in self._net.named_parameters():
-                        # self._grads[i] += (p.grad.data / batch_size)
-                        self._grads[i] += (p.grad / 1e-3)
+                # with torch.no_grad():
+                #     for i, p in self._net.named_parameters():
+                #         self._grads[i] += (p.grad.data / batch_size)
+                #         # self._grads[i] += (p.grad / 1e-3)
 
                 optimizer.step()
 
                 batch_loss: float = float(loss)
 
                 del loss, images, labels
-                epoch_loss += batch_loss
-                total_loss += epoch_loss / num_epochs
+                epoch_loss += (batch_loss / batch_size)
+            total_loss += (epoch_loss / num_epochs)
+            logging.debug(f'\nClient {self.cid} internal epoch {epoch} epoch loss: {epoch_loss:.4f}')
 
         with torch.no_grad():
             curr = self._net.state_dict()
+            grads_amp = 0
             for k in curr:
                 self._grads[k] = torch.clone(curr[k]) - torch.clone(backup[k])
-        # acc, loss = evaluate(self._net, self._eval_loader, criterion)
-        logging.info(f'\nClient {self.cid} train loss: {total_loss:.4f}')
+                grads_amp = max(grads_amp,
+                                float(torch.max(torch.abs(self._grads[k]))))
+
+        logging.info(f'\nClient {self.cid} train loss: {total_loss:.4f} Grads amplitude: {grads_amp:.4f}')
+
+        acc, loss = evaluate(self._net, self._eval_loader, criterion)
+
+        logging.info(f'\nClient {self.cid} eval loss: {loss:.4f} acc {acc:.4f}')
 
         zero_net_grads(self._net)
 
@@ -78,11 +89,11 @@ class Client:
         return evaluate(net=self._net, loader=self._eval_loader, criterion=Client.CRITERION)
 
     def receive_net_from_server(self, net: torch.nn.Module):
-        logging.info(f'Client {self.cid} receive net from server')
+        logging.debug(f'Client {self.cid} receive net from server')
         self._net = clone_model(net)
-        logging.info(f'Client {self.cid} receive net from server after clone model')
+        logging.debug(f'Client {self.cid} receive net from server after clone model')
         self._new_net_updates()
-        logging.info(f'Client {self.cid} receive net from server after new net updates')
+        logging.debug(f'Client {self.cid} receive net from server after new net updates')
 
     def merge_server_model_with_personal_model(self, net: torch):
         assert self._net is not None, 'Net not initialized. Nothing to merge to'

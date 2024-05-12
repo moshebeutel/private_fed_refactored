@@ -13,17 +13,17 @@ def to_dict(T) -> dict:
 
 
 class Config:
-    LOG2WANDB = True
+    LOG2WANDB = False
     EMBED_GRADS = False
-    CLIP_VALUE = 0.1
-    NOISE_MULTIPLIER = 4.72193  # 'values': [12.79182, 4.72193, 2.01643]
-    # DEVICE = torch.device(
-    #         "cuda:0" if torch.cuda.is_available() else "cpu"
-    #     )
-    DEVICE = 'cpu'
+    CLIP_VALUE = 1.0
+    NOISE_MULTIPLIER = 0.0  # 4.72193  # 'values': [12.79182, 4.72193, 2.01643]
+    DEVICE = torch.device(
+        "cuda:0" if torch.cuda.is_available() else "cpu"
+    )
+    # DEVICE = 'cpu'
     MODEL_NAME = 'Model3d'
 
-    USE_GP = True
+    USE_GP = False
     GP_KERNEL_FUNCTION = 'RBFKernel'
     assert GP_KERNEL_FUNCTION in ['RBFKernel', 'LinearKernel', 'MaternKernel'], \
         f'GP_KERNEL_FUNCTION={GP_KERNEL_FUNCTION} and should be one of RBFKernel, LinearKernel, MaternKernel'

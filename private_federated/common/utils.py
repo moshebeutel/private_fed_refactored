@@ -102,7 +102,7 @@ def get_command_line_arguments(parser):
                         help="Number of images in train batch")
     parser.add_argument("--server-learning-rate", type=float, default=Server.LEARNING_RATE,
                         help="Gradients update factor each round")
-    parser.add_argument("--client-learning-rate", type=float, default=Client.OPTIMIZER_PARAMS['lr'],
+    parser.add_argument("--client-learning-rate", type=float, default=Client.LEARNING_RATE,
                         help="Gradients update factor each internal round")
     parser.add_argument("--weight-decay", type=float, default="1e-3", help="Optimizer weight decay parameters")
     parser.add_argument("--momentum", type=float, default="0.9", help="Optimizer momentum parameter")

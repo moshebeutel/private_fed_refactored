@@ -1,5 +1,7 @@
 import logging
 from functools import partial
+from pathlib import Path
+
 import torch.nn
 from torch import nn
 from private_federated.common.config import Config
@@ -42,3 +44,18 @@ class ModelFactory:
         model.to(device)
         logging.debug(f'Created model: {self.model_fn} in device: {device}')
         return model
+
+
+class LoadWeightsModelFactory(ModelFactory):
+    def __init__(self, model_name: str, num_classes: int, weights_path: str):
+        super().__init__(model_name, num_classes)
+        self.weights_path = weights_path
+        assert Path(self.weights_path).exists(), 'Weights path does not exist: {}'.format(weights_path)
+        assert self.weights_path.endswith('.pt'), 'Invalid weights path: {}'.format(weights_path)
+
+    def get_model(self) -> nn.Module:
+        model = super().get_model()
+        model.load_state_dict(torch.load(self.weights_path))
+        return model
+
+

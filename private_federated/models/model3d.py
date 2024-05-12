@@ -90,13 +90,14 @@ class DenseBlock(nn.Module):
 
 class Model3d(nn.Module):
     def __init__(self, num_classes,
-                 window_size=1,
-                 depthwise_multiplier=1,
+                 window_size=260,
+                 depthwise_multiplier=32,
                  W=3,
                  H=8,
                  use_group_norm=True,
                  use_dropout=False,
-                 output_info_fn=print, output_debug_fn=print):
+                 output_info_fn=print,
+                 output_debug_fn=print):
         super(Model3d, self).__init__()
         self._output_info_fn = lambda s: None if output_info_fn is None else output_info_fn
         self._output_debug_fn = lambda s: None if output_debug_fn is None else output_debug_fn
@@ -150,7 +151,7 @@ class Model3d(nn.Module):
 
         self._output_info_fn(str(self))
 
-        self._output_info_fn("Number Parameters: {self.get_n_params()}")
+        self._output_info_fn(f"Number Parameters: {self.get_n_params()}")
 
     def get_n_params(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
