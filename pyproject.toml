@@ -9,7 +9,7 @@ packages = [{include = "private_federated"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 tqdm = "^4.66.1"
-wandb = "^0.15.9"
+wandb = "^0.17.0"
 dp-accounting = "^0.4.3"
 typing-extensions = "^4.8.0"
 pillow = "^10.1.0"
