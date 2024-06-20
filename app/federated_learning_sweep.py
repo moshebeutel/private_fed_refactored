@@ -1,6 +1,8 @@
 import argparse
+import json
 import logging
 from functools import partial
+from pathlib import Path
 import wandb
 import private_federated
 import private_federated.common
@@ -24,14 +26,14 @@ def sweep_train(sweep_id, args, config=None):
 
         args.model_name = config.model_name
         args.num_clients_agg = config.num_clients_agg
-        args.num_clients_total = config.num_private_clients
+
         args.num_clients_private = config.num_private_clients
         args.classes_per_user = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
         args.embed_grads = config.embed_grads
         args.num_clients_public = config.num_clients_public
-        args.num_clients_total += args.num_clients_public
+
         args.client_learning_rate = config.client_learning_rate
         args.server_learning_rate = config.server_learning_rate
         args.clients_internal_epochs = config.clients_internal_epochs
@@ -59,62 +61,19 @@ def sweep_train(sweep_id, args, config=None):
 def run_sweep(args):
     logging.basicConfig(level=logging.INFO)
     logging.info("run sweep")
-    sweep_config = {
-        'method': 'grid'
-    }
-    parameters_dict = {
-        'noise_multiplier': {
-            'values': [25.0, 0.0]
-            # 'values': [12.79182, 4.72193, 2.01643, 0.0]
-        },
-        'embed_grads': {
-            'values': [False, True]
-        },
-        'num_clients_agg': {
-            'values': [20]
-        },
-        'num_clients_public': {
-            'values': [100]
-        },
-        'gep_num_bases': {
-            'values': [80]
-        },
-        'clip': {
-            'values': [1.0, 0.001]
-        },
-        'seed': {
-            'values': [50]
-        },
-        'num_private_clients': {
-            'values': [700]
-        },
-        'model_name': {
-            'values': ['resnet20']
-        },
-        'classes_per_user': {
-            'values': [2]
-        },
-        'clients_internal_epochs': {
-            'values': [1, 5]
-        },
-        'client_learning_rate': {
-            'values': [0.001, 1.0]
-        },
-        'server_learning_rate': {
-            'values': [0.001, 1.0]
-        }
 
-    }
+    json_path = Path(args.json_path)
+    assert json_path.exists(), f'{json_path} does not exist'
+    assert json_path.suffix == '.json', f'{json_path} is not a json file'
 
-    parameters_dict.update({
-        # 'sample_with_replacement': {
-        #     'values': [0, 1]
-        # },
-        # 'use_gp': {
-        #     'values': [0]
-        # },
-    })
-    sweep_config['parameters'] = parameters_dict
+    with open(json_path, 'r') as file:
+        json_data = file.read()
+
+    # Convert JSON data to a dictionary
+    parameters_dict = json.loads(json_data)
+
+    sweep_config = {'method': 'grid', 'parameters': parameters_dict}
+
     metric = {
         'name': 'best_epoch_validation_acc',
         'goal': 'maximize'

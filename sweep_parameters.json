@@ -1,0 +1,73 @@
+{
+    "noise_multiplier": {
+        "values": [
+            25.0,
+            12.79182,
+            4.72193,
+            2.01643,
+            0.0
+        ]
+    },
+    "embed_grads": {
+        "values": [
+            false,
+            true
+        ]
+    },
+    "num_clients_agg": {
+        "values": [
+            20
+        ]
+    },
+    "num_clients_public": {
+        "values": [
+            50
+        ]
+    },
+    "gep_num_bases": {
+        "values": [
+            80
+        ]
+    },
+    "clip": {
+        "values": [
+            1.0,
+            0.001
+        ]
+    },
+    "seed": {
+        "values": [
+            20
+        ]
+    },
+    "num_private_clients": {
+        "values": [
+            500
+        ]
+    },
+    "model_name": {
+        "values": [
+            "resnet20"
+        ]
+    },
+    "classes_per_user": {
+        "values": [
+            2
+        ]
+    },
+    "clients_internal_epochs": {
+        "values": [
+            1
+        ]
+    },
+    "client_learning_rate": {
+        "values": [
+            0.001
+        ]
+    },
+    "server_learning_rate": {
+        "values": [
+            0.001
+        ]
+    }
+}
