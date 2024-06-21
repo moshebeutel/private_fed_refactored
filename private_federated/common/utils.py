@@ -143,5 +143,10 @@ def get_command_line_arguments(parser):
     parser.add_argument("--saved-models-path", type=str, default='./saved_models',
                         help='Train model in a federated_learning manner before fine tuning')
 
+    # Sweep
+    parser.add_argument("--json-path", type=str, default=f"{str(Path.cwd())}/sweep_parameters.json",
+                        help="dir path for datafolder")
+
+
     args = parser.parse_args()
     return args

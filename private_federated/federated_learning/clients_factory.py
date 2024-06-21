@@ -1,22 +1,18 @@
 import logging
-from torch.utils.data import DataLoader
 from private_federated.federated_learning.server import Server
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
-from typing import TypeVar, Generic
-
-T = TypeVar('T')
 
 
-class ClientFactory(Generic[T]):
-    NUM_CLIENTS_PUBLIC = 100
-    NUM_CLIENTS_PRIVATE = 1000
+class ClientFactory:
+    NUM_CLIENTS_PUBLIC = 50
+    NUM_CLIENTS_PRIVATE = 500
     NUM_CLIENTS_VAL = 50
-    NUM_CLIENTS_TEST = 200
-    NUM_ALL_USERS = 1350
+    NUM_CLIENTS_TEST = 100
+    NUM_ALL_USERS = 700
 
-    def __init__(self):
+    def __init__(self, dataset_factory: DatasetFactory):
         assert ClientFactory.NUM_CLIENTS_PRIVATE >= Server.NUM_CLIENT_AGG, \
             f'Cant aggregate {Server.NUM_CLIENT_AGG} out of {ClientFactory.NUM_CLIENTS_PRIVATE} train users'
 
@@ -46,12 +42,15 @@ class ClientFactory(Generic[T]):
         self.train_user_list = [('%d' % i).zfill(4) for i in range(ClientFactory.NUM_CLIENTS_PUBLIC + 1,
                                                                    ClientFactory.NUM_CLIENTS_PUBLIC +
                                                                    ClientFactory.NUM_CLIENTS_PRIVATE + 1)]
+
         self.public_users = [('%d' % i).zfill(4) for i in range(1, ClientFactory.NUM_CLIENTS_PUBLIC + 1)]
+
         self.validation_user_list = [('%d' % i).zfill(4) for i in range(ClientFactory.NUM_CLIENTS_PUBLIC +
                                                                         ClientFactory.NUM_CLIENTS_PRIVATE + 1,
                                                                         ClientFactory.NUM_CLIENTS_PUBLIC +
                                                                         ClientFactory.NUM_CLIENTS_PRIVATE
                                                                         + ClientFactory.NUM_CLIENTS_VAL + 1)]
+
         self.test_user_list = [('%d' % i).zfill(4) for i in range(ClientFactory.NUM_CLIENTS_PUBLIC +
                                                                   ClientFactory.NUM_CLIENTS_PRIVATE +
                                                                   ClientFactory.NUM_CLIENTS_VAL + 1,
@@ -59,6 +58,7 @@ class ClientFactory(Generic[T]):
                                                                   ClientFactory.NUM_CLIENTS_PRIVATE +
                                                                   ClientFactory.NUM_CLIENTS_VAL +
                                                                   ClientFactory.NUM_CLIENTS_TEST + 1)]
+
         self.dummy_users = [('%d' % i).zfill(4) for i in range(ClientFactory.NUM_CLIENTS_PUBLIC +
                                                                ClientFactory.NUM_CLIENTS_PRIVATE +
                                                                ClientFactory.NUM_CLIENTS_VAL +
@@ -71,6 +71,7 @@ class ClientFactory(Generic[T]):
         self._private_train_clients = [c for c in self._clients if c.cid in self.train_user_list]
         self._validation_clients = [c for c in self._clients if c.cid in self.validation_user_list]
         self._test_clients = [c for c in self._clients if c.cid in self.test_user_list]
+
         ClientFactory.log_user_list('Public Users', self.public_users)
         ClientFactory.log_user_list('Private Users', self.train_user_list)
         ClientFactory.log_user_list('Validation Users', self.validation_user_list)

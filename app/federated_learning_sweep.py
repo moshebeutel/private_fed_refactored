@@ -61,70 +61,19 @@ def sweep_train(sweep_id, args, config=None):
 def run_sweep(args):
     logging.basicConfig(level=logging.INFO)
     logging.info("run sweep")
-    sweep_config = {
-        'method': 'grid'
-    }
-    parameters_dict = {
-        'noise_multiplier': {
-            # 'values': [0.0, 1.0, 4.0]
-            'values': [12.79182, 4.72193, 2.01643, 0.0]
-            # 'values': [12.79182, 4.72193, 2.01643, 0.0]
-        },
-        'embed_grads': {
-            'values': [True]
-        },
-        'use_gp': {
-            'values': [False]
-            # 'values': [False, True]
-        },
-        'num_clients_agg': {
-            'values': [100]
-        },
-        'num_clients_public': {
-            # 'values': [100]
-            'values': [100, 150]
-        },
-        'gep_num_bases': {
-            'values': [50, 150]
-            # 'values': [80]
-        },
-        'grads_history_size': {
-            'values': [50, 150]
-        },
-        'clip': {
-            'values': [0.001]
-            # 'values': [0.001, 0.01]
-        },
-        'seed': {
-            'values': [100]
-        },
-        'num_private_clients': {
-            'values': [700]
-        },
-        'model_name': {
-            'values': ['resnet8']
-            # 'values': ['resnet20', 'resnet8']
-        },
-        'classes_per_user': {
-            'values': [2]
-        },
-        'clients_internal_epochs': {
-            'values': [1]
-        },
-        'client_learning_rate': {
-            'values': [0.001]
-        },
-        'server_learning_rate': {
-            'values': [0.5]
-        }
-    }
 
-    parameters_dict.update({
-        # 'sample_with_replacement': {
-        #     'values': [0, 1]
-        # },
-    })
-    sweep_config['parameters'] = parameters_dict
+    json_path = Path(args.json_path)
+    assert json_path.exists(), f'{json_path} does not exist'
+    assert json_path.suffix == '.json', f'{json_path} is not a json file'
+
+    with open(json_path, 'r') as file:
+        json_data = file.read()
+
+    # Convert JSON data to a dictionary
+    parameters_dict = json.loads(json_data)
+
+    sweep_config = {'method': 'grid', 'parameters': parameters_dict}
+
     metric = {
         'name': 'best_epoch_validation_acc',
         'goal': 'maximize'

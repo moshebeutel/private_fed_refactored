@@ -1,3 +1,4 @@
+#!/bin/bash
 poetry run python app/federated_learning.py \
     --classes_per_user 2 \
     --clip 0.001 \

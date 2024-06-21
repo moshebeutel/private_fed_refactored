@@ -15,10 +15,10 @@ from private_federated.train.utils import clone_model, merge_model, evaluate
 
 
 class Server:
-    NUM_ROUNDS = 30
-    NUM_CLIENT_AGG: int = 8
-    SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = False
-    LEARNING_RATE: float = 0.2
+    NUM_ROUNDS = 100
+    NUM_CLIENT_AGG: int = 20
+    SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
+    LEARNING_RATE: float = 0.0001
     WEIGHT_DECAY: float = 1e-3
     MOMENTUM: float = 0.9
     MODEL_SAVE_PATH: Path = Path.home() / 'saved_models/putEMG/model3d'
