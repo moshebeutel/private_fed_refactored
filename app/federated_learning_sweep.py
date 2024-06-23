@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 from functools import partial
 import wandb
 import private_federated
@@ -58,7 +59,10 @@ def sweep_train(sweep_id, args, config=None):
         single_train(args)
 
 
-def run_sweep(args):
+def run_sweep():
+    parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
+    args = private_federated.common.utils.get_command_line_arguments(parser)
+
     logging.basicConfig(level=logging.INFO)
     logging.info("run sweep")
 
@@ -87,6 +91,4 @@ def run_sweep(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Private Federated Learning Sweep")
-    command_line_args = private_federated.common.utils.get_command_line_arguments(parser)
-    run_sweep(command_line_args)
+    run_sweep()
