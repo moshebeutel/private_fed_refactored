@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "private-federated"
-version = "0.2.9"
-description = "Implementation of differentially private federated learning"
+version = "0.2.11"
+description = "Implementation of differentially private federated learningqq"
 authors = ["Moshe Beutel <moshebeutel@gmail.com>"]
 readme = "README.md"
 packages = [{include = "private_federated"}]
@@ -16,6 +16,9 @@ pillow = "^10.1.0"
 scikit-learn = "^1.4.1.post1"
 torch = "^2.2.1"
 torchvision = "^0.17.1"
+
+[tool.poetry.scripts]
+sweep = "app.federated_learning_sweep:run_sweep"
 
 
 [build-system]
