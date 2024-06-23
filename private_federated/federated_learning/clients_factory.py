@@ -3,6 +3,7 @@ from private_federated.federated_learning.server import Server
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
 from private_federated.federated_learning.client import Client
+from torch.utils.data import DataLoader
 
 
 class ClientFactory:
@@ -12,7 +13,7 @@ class ClientFactory:
     NUM_CLIENTS_TEST = 100
     NUM_ALL_USERS = 700
 
-    def __init__(self, dataset_factory: DatasetFactory):
+    def __init__(self):
         assert ClientFactory.NUM_CLIENTS_PRIVATE >= Server.NUM_CLIENT_AGG, \
             f'Cant aggregate {Server.NUM_CLIENT_AGG} out of {ClientFactory.NUM_CLIENTS_PRIVATE} train users'
 
@@ -79,7 +80,7 @@ class ClientFactory:
         ClientFactory.log_user_list('Dummy Users', self.dummy_users)
         ClientFactory.log_user_list('All Users', self.all_users_list)
 
-    def _get_client_type(self) -> T:
+    def _get_client_type(self) -> Client:
         raise NotImplementedError
 
     def _create_clients(self, data_loaders: dict[str, dict[str, DataLoader]]):
@@ -117,7 +118,8 @@ class ClientFactory:
         return self._test_clients
 
 
-class NetClientsFactory(ClientFactory[Client]):
+# class NetClientsFactory(ClientFactory[Client]):
+class NetClientsFactory(ClientFactory):
     def _get_client_type(self):
         return Client
 

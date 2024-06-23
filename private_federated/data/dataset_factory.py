@@ -44,6 +44,8 @@ class DatasetFactory:
         train_size = len(dataset) - val_size
         train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
 
+        self._classes = dataset.classes
+
         subsets, cls_partitions = gen_random_subsets(num_users=len(users),
                                                      classes_per_user=DatasetFactory.CLASSES_PER_USER,
                                                      datasets=[train_set, val_set, test_set])
@@ -80,7 +82,7 @@ class DatasetFactory:
 
     @property
     def classes(self):
-        return self.train_set.dataset.classes
+        return self._classes
 
 
 class PutEMGDatasetFactory(DatasetFactory):

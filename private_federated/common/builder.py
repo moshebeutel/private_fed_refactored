@@ -91,7 +91,8 @@ def build_all(args) -> Server:
     clients_factory.create(data_loaders={'train': loader_generator.users_loaders,
                                          'eval': loader_generator.users_test_loaders})
 
-    models_factory_fn = LoadWeightsModelFactory(args.model_name, len(dataset_factory.classes), weights_path='/home/user1/saved_models/putEMG/model3d/round_1_acc_0.1317.pt').get_model
+    # models_factory_fn = LoadWeightsModelFactory(args.model_name, len(dataset_factory.classes), weights_path='/home/user1/saved_models/putEMG/model3d/round_1_acc_0.1317.pt').get_model
+    models_factory_fn = ModelFactory(model_name=args.model_name, num_classes=len(dataset_factory.classes)).get_model
     aggregation_strategy_factory_fn = partial(get_aggregation_strategy, args)
     server: Server = get_server(aggregation_strategy_factory_fn, clients_factory, dataset_factory, models_factory_fn)
     return server

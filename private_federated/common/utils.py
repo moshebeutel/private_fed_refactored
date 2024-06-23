@@ -76,7 +76,7 @@ def get_command_line_arguments(parser):
     # Data
     parser.add_argument("--data-path", type=str, default=f"{str(Path.home())}/datasets/",
                         help="dir path for datafolder")
-    parser.add_argument("--dataset-name", type=str, default=f"putEMG",
+    parser.add_argument("--dataset-name", type=str, default=f"CIFAR10",
                         choices=[DatasetFactory.DATASETS_HUB.keys()],
                         help="Name of dataset (CIFAR10, CIFAR100 ...)")
 
