@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 from private_federated.data.random_data_split import gen_classes_per_node, gen_data_split
@@ -27,3 +30,11 @@ def gen_random_subsets(num_users: int, classes_per_user: int, datasets: list[Dat
         subsets = list(map(lambda x: torch.utils.data.Subset(d, x), usr_subset_idx))
         subsets_list.append(subsets)
     return subsets_list, cls_partitions
+
+
+def load_npy(fpath: Path) -> np.ndarray:
+    assert fpath.exists(), f"{fpath} does not exist"
+    assert fpath.is_file(), f'{fpath} is not a file'
+    assert fpath.suffix == '.npy', f'{fpath} is not a .npy file'
+    with fpath.open('rb') as f:
+        return np.load(f)

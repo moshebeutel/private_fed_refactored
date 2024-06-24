@@ -220,7 +220,7 @@ class Model3d(nn.Module):
         output = self._output(fc3)
         self._output_debug_fn(f'logits {output.shape}')
 
-        # output = F.softmax(output, dim=1)
+        output = F.softmax(output, dim=1)
         # self._output_debug_fn(f'softmax {output.shape}')
 
         return output

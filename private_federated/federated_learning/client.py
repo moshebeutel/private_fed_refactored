@@ -35,7 +35,6 @@ class Client:
         self._net.train()
 
         criterion = Client.CRITERION
-        self._lr *= 0.75
         optimizer = Client.OPTIMIZER_TYPE(params=self._net.parameters(), **{'lr': self._lr, **Client.OPTIMIZER_PARAMS})
 
         total_loss = 0
@@ -51,14 +50,8 @@ class Client:
                 optimizer.zero_grad()
 
                 outputs = self._net(images)
-                labels[labels > 5] -= 2
                 loss = criterion(outputs, labels)
                 loss.backward()
-
-                # with torch.no_grad():
-                #     for i, p in self._net.named_parameters():
-                #         self._grads[i] += (p.grad.data / batch_size)
-                #         # self._grads[i] += (p.grad / 1e-3)
 
                 optimizer.step()
 
@@ -68,6 +61,7 @@ class Client:
                 epoch_loss += (batch_loss / batch_size)
             total_loss += (epoch_loss / num_epochs)
             logging.debug(f'\nClient {self.cid} internal epoch {epoch} epoch loss: {epoch_loss:.4f}')
+            logging.debug(f'\nClient {self.cid} max param {max([float(p.norm()) for p in self._net.parameters()])}')
 
         with torch.no_grad():
             curr = self._net.state_dict()
@@ -77,11 +71,11 @@ class Client:
                 grads_amp = max(grads_amp,
                                 float(torch.max(torch.abs(self._grads[k]))))
 
-        logging.info(f'\nClient {self.cid} train loss: {total_loss:.4f} Grads amplitude: {grads_amp:.4f}')
+        logging.debug(f'\nClient {self.cid} train loss: {total_loss:.4f} Grads amplitude: {grads_amp:.4f}')
 
         acc, loss = evaluate(self._net, self._eval_loader, criterion)
 
-        logging.info(f'\nClient {self.cid} eval loss: {loss:.4f} acc {acc:.4f}')
+        logging.debug(f'\nClient {self.cid} eval loss: {loss:.4f} acc {acc:.4f}')
 
         zero_net_grads(self._net)
 

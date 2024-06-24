@@ -64,7 +64,7 @@ class Server:
         """
         # main federated learning loop
         for federated_train_round in self._progress_bar:
-            logging.info(f'\nFederated training round {federated_train_round}')
+            logging.debug('\nFederated training round {federated_train_round}')
 
             self._federated_round()
 
@@ -106,7 +106,7 @@ class Server:
         self._sampled_clients = self._sample_fn(self._train_clients, k=Server.NUM_CLIENT_AGG)
         self._sampled_clients_history.extend(self._sampled_clients)
         self._sampled_clients_history = list(set(self._sampled_clients_history))
-        logging.info(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
+        logging.debug(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
 
     def _preform_train_round(self, clients: list[Client]):
         """
@@ -115,7 +115,7 @@ class Server:
         """
         assert clients, f'Expected clients list. Got {len(clients)} clients'
         for c in clients:
-            logging.info(f'Client {c.cid} train round...')
+            logging.debug(f'Client {c.cid} train round...')
             c.receive_net_from_server(net=self._net)
             logging.debug(f'Client {c.cid} before train')
             c.train()
@@ -166,7 +166,7 @@ class Server:
             grad_update = aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
             assert torch.linalg.norm(grad_update) > 0.0, f'The gradient update of {k} is zero norm'
             logging.debug(f'before store       {torch.linalg.norm(self._grads[k])}')
-            self._grads[k] += aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
+            self._grads[k] = aggregated_grads_flattened[offset:offset + num_elements].reshape(shape)
             logging.debug(f'after store       {torch.linalg.norm(self._grads[k])}')
             offset += num_elements
 
@@ -174,12 +174,18 @@ class Server:
         """
         Update the server model using the local grads state dict
         """
+        logging.debug(f'\nServer  max param  before update {max([float(p.norm()) for p in self._net.parameters()])}')
 
         grads_model = clone_model(self._net)
+        logging.debug(f'\nServer  max param after clone {max([float(p.norm()) for p in grads_model.parameters()])}')
+
         grads_model.load_state_dict(self._grads)
+        logging.debug(f'\nServer  max param after load grads {max([float(p.norm()) for p in grads_model.parameters()])}')
+
         self._lr = max(0.1, self._lr - 0.1)
         self._net = merge_model(model1=self._net, model2=grads_model,
                                 weight1=1 - self._lr, weight2=self._lr)
+        logging.debug(f'\nServer  max param after merge grads {max([float(p.norm()) for p in self._net.parameters()])}')
 
     def _evaluate_server_model(self):
         """
@@ -188,7 +194,7 @@ class Server:
 
         self._last_val_acc, val_loss = self._evaluate_train_clients_on_their_test_set()
         # self._last_val_acc, val_loss = evaluate(net=self._net, loader=self._val_loader, criterion=Client.CRITERION)
-        logging.info(f'\nvalidation accuracy: {self._last_val_acc}')
+        logging.debug(f'\nvalidation accuracy: {self._last_val_acc}')
         if Config.LOG2WANDB:
             wandb.log({'val_acc': self._last_val_acc,
                        'val_loss': val_loss})
