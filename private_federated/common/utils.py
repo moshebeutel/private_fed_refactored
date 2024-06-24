@@ -1,14 +1,11 @@
 import logging
 from pathlib import Path
-
-import torch
-
-from private_federated.differential_privacy.gep.gep_server import GepServer
-from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.common.config import Config, to_dict
 from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.data.loaders_generator import DataLoadersGenerator
+from private_federated.differential_privacy.gep.gep_server import GepServer
 from private_federated.federated_learning.client import Client
+from private_federated.federated_learning.clients_factory import ClientFactory
 from private_federated.federated_learning.server import Server
 from private_federated.models.model_factory import ModelFactory
 
@@ -76,7 +73,7 @@ def get_command_line_arguments(parser):
     # Data
     parser.add_argument("--data-path", type=str, default=f"{str(Path.home())}/datasets/",
                         help="dir path for datafolder")
-    parser.add_argument("--dataset-name", type=str, default=f"putEMG",
+    parser.add_argument("--dataset-name", type=str, default=f"CIFAR10",
                         choices=[DatasetFactory.DATASETS_HUB.keys()],
                         help="Name of dataset (CIFAR10, CIFAR100 ...)")
 

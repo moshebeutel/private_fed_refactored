@@ -21,12 +21,12 @@
     },
     "num_clients_agg": {
         "values": [
-            2
+            3
         ]
     },
     "num_clients_public": {
         "values": [
-            50
+            8
         ]
     },
     "gep_num_bases": {
@@ -53,6 +53,11 @@
     "model_name": {
         "values": [
             "Model3d"
+        ]
+    },
+    "dataset_name": {
+        "values": [
+            "putEMG"
         ]
     },
     "classes_per_user": {

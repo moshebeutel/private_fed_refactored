@@ -21,7 +21,7 @@ class Config:
         "cuda:0" if torch.cuda.is_available() else "cpu"
     )
     # DEVICE = 'cpu'
-    MODEL_NAME = 'Model3d'
+    MODEL_NAME = 'resnet20'
 
     USE_GP = False
     GP_KERNEL_FUNCTION = 'RBFKernel'

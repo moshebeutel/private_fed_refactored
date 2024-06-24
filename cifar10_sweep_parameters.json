@@ -55,6 +55,11 @@
             "resnet20"
         ]
     },
+    "dataset_name": {
+        "values": [
+            "CIFAR10"
+        ]
+    },
     "classes_per_user": {
         "values": [
             2
