@@ -25,6 +25,8 @@ def sweep_train(sweep_id, args, config=None):
 
         args.model_name = config.model_name
         args.dataset_name = config.dataset_name
+        args.saved_models_path = Path.home() / 'saved_models' / config.model_name / config.dataset_name
+
         args.num_clients_agg = config.num_clients_agg
         args.num_clients_private = config.num_private_clients
         args.num_clients_public = config.num_clients_public

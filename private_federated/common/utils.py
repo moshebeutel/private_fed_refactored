@@ -137,7 +137,7 @@ def get_command_line_arguments(parser):
                         help='ratio  (DP noise ratio) / sensitivity.'
                              ' 0.0 for non-private mechanisms.')
 
-    parser.add_argument("--saved-models-path", type=str, default='./saved_models',
+    parser.add_argument("--saved-models-path", type=str, default=Server.MODEL_SAVE_PATH,
                         help='Train model in a federated_learning manner before fine tuning')
 
     # Sweep
