@@ -1,17 +1,12 @@
 {
     "noise_multiplier": {
         "values": [
-            25.0,
-            12.79182,
-            4.72193,
-            2.01643,
             0.0
         ]
     },
     "embed_grads": {
         "values": [
-            false,
-            true
+            false
         ]
     },
     "use_gp": {
@@ -21,12 +16,17 @@
     },
     "num_clients_agg": {
         "values": [
-            3
+            10
         ]
     },
     "num_clients_public": {
         "values": [
             8
+        ]
+    },
+    "grads_history_size": {
+        "values": [
+            20
         ]
     },
     "gep_num_bases": {
@@ -42,7 +42,7 @@
     },
     "seed": {
         "values": [
-            20
+            70, 80, 90
         ]
     },
     "num_private_clients": {

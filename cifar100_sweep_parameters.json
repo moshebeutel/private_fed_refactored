@@ -29,6 +29,11 @@
             50
         ]
     },
+    "grads_history_size": {
+        "values": [
+            80
+        ]
+    },
     "gep_num_bases": {
         "values": [
             80
@@ -42,7 +47,7 @@
     },
     "seed": {
         "values": [
-            20
+            70, 80, 90
         ]
     },
     "num_private_clients": {
