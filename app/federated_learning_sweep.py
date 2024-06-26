@@ -82,14 +82,10 @@ def run_sweep():
     # Convert JSON data to a dictionary
     parameters_dict = json.loads(json_data)
 
-    sweep_config = {'method': 'grid', 'parameters': parameters_dict}
-
-    metric = {
-        'name': 'best_epoch_validation_acc',
-        'goal': 'maximize'
-    }
-
-    sweep_config['metric'] = metric
+    sweep_config = {'name': args.sweep_name,
+                    'method': 'grid',
+                    'metric': {'name': 'best_epoch_validation_acc', 'goal': 'maximize'},
+                    'parameters': parameters_dict}
 
     sweep_id = wandb.sweep(sweep_config, project="pytorch-sweeps-demo")
 

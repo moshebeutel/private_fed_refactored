@@ -11,7 +11,6 @@ from private_federated.models.model_factory import ModelFactory
 
 
 def populate_args(args):
-
     assert args.model_name in ModelFactory.MODEL_HUB.keys(), (f'Expected one of {ModelFactory.MODEL_HUB.keys()}.'
                                                               f' Got {args.model_name}')
     Config.MODEL_NAME = args.model_name
@@ -26,7 +25,6 @@ def populate_args(args):
     # ClientFactory.NUM_ALL_USERS = args.num_clients_total
     ClientFactory.NUM_CLIENTS_PRIVATE = args.num_clients_private
     ClientFactory.NUM_CLIENTS_PUBLIC = args.num_clients_public
-
 
     Server.NUM_ROUNDS = args.num_rounds
     Server.NUM_CLIENT_AGG = args.num_clients_agg
@@ -115,7 +113,6 @@ def get_command_line_arguments(parser):
     parser.add_argument("--use-gp", type=bool, default=Config.USE_GP,
                         help='Use Gaussian Process model on client side.')
 
-
     # GEP
     parser.add_argument("--embed-grads", action='store_true', help='Use GEP')
     parser.add_argument("--num-clients-public", type=int,
@@ -144,6 +141,7 @@ def get_command_line_arguments(parser):
     parser.add_argument("--json-path", type=str, default=f"{str(Path.cwd())}/sweep_parameters.json",
                         help="dir path for datafolder")
 
+    parser.add_argument("--sweep-name", type=str, default="", help="describe the sweep")
 
     args = parser.parse_args()
     return args

@@ -1,12 +1,16 @@
 {
     "noise_multiplier": {
         "values": [
+            25.0,
+            12.79182,
+            4.72193,
+            2.01643,
             0.0
         ]
     },
     "embed_grads": {
         "values": [
-            false
+            true
         ]
     },
     "use_gp": {
@@ -16,22 +20,22 @@
     },
     "num_clients_agg": {
         "values": [
-            10
+            20
         ]
     },
     "num_clients_public": {
         "values": [
-            8
+            50
         ]
     },
     "grads_history_size": {
         "values": [
-            20
+            80
         ]
     },
     "gep_num_bases": {
         "values": [
-            20
+            80
         ]
     },
     "clip": {
@@ -42,27 +46,27 @@
     },
     "seed": {
         "values": [
-            70, 80, 90
+            70
         ]
     },
     "num_private_clients": {
         "values": [
-            22
+            500
         ]
     },
     "model_name": {
         "values": [
-            "Model3d"
+            "resnet20"
         ]
     },
     "dataset_name": {
         "values": [
-            "putEMG"
+            "CIFAR10"
         ]
     },
     "classes_per_user": {
         "values": [
-            8
+            2
         ]
     },
     "clients_internal_epochs": {
