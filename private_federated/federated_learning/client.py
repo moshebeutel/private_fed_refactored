@@ -7,10 +7,10 @@ from private_federated.train.utils import evaluate, clone_model, merge_model
 
 
 class Client:
-    INTERNAL_EPOCHS = 4
+    INTERNAL_EPOCHS = 50
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
-    LEARNING_RATE = 1e-2
+    LEARNING_RATE = 1e-3
     OPTIMIZER_PARAMS = {'weight_decay': 1e-3, 'momentum': 0.9}
     PERSONALIZATION_WEIGHT = 0.1
 
@@ -24,7 +24,7 @@ class Client:
         self._lr = Client.LEARNING_RATE
 
     def train(self):
-        self._train(num_epochs=Client.INTERNAL_EPOCHS)
+        return self._train(num_epochs=Client.INTERNAL_EPOCHS)
 
     def train_single_epoch(self):
         self._train(num_epochs=1)
@@ -60,8 +60,7 @@ class Client:
                 del loss, images, labels
                 epoch_loss += (batch_loss / batch_size)
             total_loss += (epoch_loss / num_epochs)
-            logging.debug(f'\nClient {self.cid} internal epoch {epoch} epoch loss: {epoch_loss:.4f}')
-            logging.debug(f'\nClient {self.cid} max param {max([float(p.norm()) for p in self._net.parameters()])}')
+            logging.debug(f'Client {self.cid} internal epoch {epoch} epoch loss: {epoch_loss:.4f} max param {max([float(p.norm()) for p in self._net.parameters()])}')
 
         with torch.no_grad():
             curr = self._net.state_dict()
@@ -78,6 +77,7 @@ class Client:
         logging.debug(f'\nClient {self.cid} eval loss: {loss:.4f} acc {acc:.4f}')
 
         zero_net_grads(self._net)
+        return total_loss, acc, loss
 
     def evaluate(self) -> tuple[float, float]:
         return evaluate(net=self._net, loader=self._eval_loader, criterion=Client.CRITERION)
