@@ -1,15 +1,16 @@
 import argparse
+import json
 import logging
-import sys
 from functools import partial
+from pathlib import Path
 import wandb
 import private_federated
 import private_federated.common
 from private_federated.common import builder
 from private_federated.common import utils
 from private_federated.train.utils import set_seed
-from pathlib import Path
-import json
+
+
 def single_train(args):
     private_federated.common.utils.populate_args(args)
     federated_learning_server = builder.build_all(args)
@@ -39,14 +40,16 @@ def sweep_train(sweep_id, args, config=None):
         args.server_learning_rate = config.server_learning_rate
         args.clients_internal_epochs = config.clients_internal_epochs
 
-        run_name = (f'Use GP: {args.use_gp},'
+        run_name = (f'{args.dataset_name},{args.model_name},'
                     f'Embed Grads: {args.embed_grads},'
-                    f'Num Clients Agg: {args.num_clients_agg},'
                     f'Noise Mult. {args.noise_multiplier},'
+                    f'Use GP: {args.use_gp},'
+                    f'Num Clients Agg: {args.num_clients_agg},'
                     f'Clip Value {args.clip},'
-                    f'Internal Epochs {args.clients_internal_epochs},'
+                    f'Client Learning Rate {args.client_learning_rate},'
                     f'Server Learning Rate {args.server_learning_rate},'
-                    f'Client Learning Rate {args.client_learning_rate}')
+                    f'Internal Epochs {args.clients_internal_epochs}')
+
         if args.embed_grads:
             args.embedding_num_bases = config.gep_num_bases
             args.grads_history_size = config.grads_history_size
