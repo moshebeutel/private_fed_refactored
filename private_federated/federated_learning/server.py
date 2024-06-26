@@ -51,6 +51,9 @@ class Server:
         self._val_loader: DataLoader = val_loader
         self._test_loader: DataLoader = test_loader
         self._aggregating_strategy = aggregating_strategy
+        self._last_train_loss: float = 0.0
+        self._last_train_eval_acc: float = 0.0
+        self._last_train_eval_loss: float = 0.0
         self._last_val_acc: float = 0.0
         self._best_val_acc: float = 0.0
         self._best_round: int = 0
@@ -78,10 +81,11 @@ class Server:
         self._test_net()
 
     def _update_progress_bar_desc(self, federated_train_round):
-        self._progress_bar.set_description(f'Round {federated_train_round} finished.'
-                                           f' Acc {self._last_val_acc} '
-                                           f'({self._best_val_acc} best acc till now,'
-                                           f' best round {self._best_round})')
+        self._progress_bar.set_description(f'Round {federated_train_round}/{Server.NUM_ROUNDS},'
+                                           f'Acc {self._last_val_acc:.3f},'
+                                           f'(best acc {self._best_val_acc:.3f},'
+                                           f'round {self._best_round}),'
+                                           f'train eval acc {self._last_train_eval_acc:.3f},')
 
     def _federated_round(self):
         """
@@ -114,11 +118,22 @@ class Server:
         :param clients (list[Client]): list of clients participating in the train round
         """
         assert clients, f'Expected clients list. Got {len(clients)} clients'
+        train_losses, eval_accs, eval_losses = [], [], []
         for c in clients:
             logging.debug(f'Client {c.cid} train round...')
             c.receive_net_from_server(net=self._net)
             logging.debug(f'Client {c.cid} before train')
-            c.train()
+            train_loss, eval_acc, eval_loss = c.train()
+            train_losses.append(train_loss)
+            eval_accs.append(eval_acc)
+            eval_losses.append(eval_loss)
+        self._last_train_loss = sum(train_losses) / float(len(train_losses))
+        self._last_train_eval_acc = sum(eval_accs) / float(len(eval_accs))
+        self._last_train_eval_loss = sum(eval_losses) / float(len(eval_losses))
+        if Config.LOG2WANDB:
+            wandb.log({'train_loss': self._last_train_loss,
+                       'train_eval_loss': self._last_train_eval_loss,
+                       'train_eval_acc': self._last_train_eval_acc})
 
     def _get_clients_grads(self, clients: list[Client]) -> torch.Tensor:
         """
