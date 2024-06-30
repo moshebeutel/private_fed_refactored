@@ -116,7 +116,7 @@ def gen_data_split(dataset, num_users, class_partitions):
     return user_data_idx
 
 
-def gen_random_loaders(num_users: int, bz: int, classes_per_user: int, datasets: list[Dataset]):
+def gen_random_loaders(num_users: int, bz: int, classes_per_user: int, datasets):
     """
     Taken from https://github.com/AvivSham/pFedHN.git
 

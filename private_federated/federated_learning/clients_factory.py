@@ -66,7 +66,7 @@ class ClientFactory:
                                                                ClientFactory.NUM_CLIENTS_TEST + 1,
                                                                ClientFactory.NUM_ALL_USERS + 1)]
 
-    def create(self, data_loaders: dict[str, dict[str, DataLoader]]):
+    def create(self, data_loaders):
         self._create_clients(data_loaders)
         self._public_clients = [c for c in self._clients if c.cid in self.public_users]
         self._private_train_clients = [c for c in self._clients if c.cid in self.train_user_list]
@@ -83,7 +83,7 @@ class ClientFactory:
     def _get_client_type(self) -> Client:
         raise NotImplementedError
 
-    def _create_clients(self, data_loaders: dict[str, dict[str, DataLoader]]):
+    def _create_clients(self, data_loaders):
         train_loaders = data_loaders['train']
         eval_loaders = data_loaders['eval']
         loaders = {cid: {'train': train_loaders[cid], 'eval': eval_loaders[cid]} for cid in train_loaders}
@@ -93,7 +93,7 @@ class ClientFactory:
                          for cid in loaders]
 
     @staticmethod
-    def log_user_list(list_name: str, user_list: list[str]):
+    def log_user_list(list_name: str, user_list):
         log_str = f"{list_name}: {user_list[0]}-{user_list[-1]}" if len(user_list) > 0 else f"{list_name} is empty"
         logging.info(log_str)
 

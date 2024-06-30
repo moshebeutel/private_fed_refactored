@@ -24,7 +24,7 @@ class PutEMGDataset(Dataset):
     def __len__(self):
         return self._len
 
-    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
+    def __getitem__(self, index: int):
         assert 0 <= index < self._len, f'Index {index} out of [0, {self._len}-1]'
         X: Tensor = torch.load(self._X_file_path.as_posix())
         y: Tensor = torch.load(self._y_file_path.as_posix())

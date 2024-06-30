@@ -79,7 +79,7 @@ class Client:
         zero_net_grads(self._net)
         return total_loss, acc, loss
 
-    def evaluate(self) -> tuple[float, float]:
+    def evaluate(self):
         return evaluate(net=self._net, loader=self._eval_loader, criterion=Client.CRITERION)
 
     def receive_net_from_server(self, net: torch.nn.Module):

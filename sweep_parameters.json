@@ -10,12 +10,13 @@
     },
     "embed_grads": {
         "values": [
+            false,
             true
         ]
     },
     "use_gp": {
         "values": [
-            false
+            true
         ]
     },
     "num_clients_agg": {
@@ -46,7 +47,7 @@
     },
     "seed": {
         "values": [
-            70
+            70, 80, 90
         ]
     },
     "num_private_clients": {

@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from private_federated.data.random_data_split import gen_classes_per_node, gen_data_split
 
 
-def gen_random_subsets(num_users: int, classes_per_user: int, datasets: list[Dataset]):
+def gen_random_subsets(num_users: int, classes_per_user: int, datasets):
     """
     A variant of the `gen_random_loaders` that originally generates train/val/test loaders of each client
     Taken from https://github.com/AvivSham/pFedHN.git

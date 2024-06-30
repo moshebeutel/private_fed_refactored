@@ -53,7 +53,7 @@ def populate_args(args):
                   **to_dict(Config)})
 
 
-def split_to_floats(inp: str) -> list[float]:
+def split_to_floats(inp: str):
     lstrings = inp.split(sep=',')
     return [float(entry) for entry in lstrings]
 

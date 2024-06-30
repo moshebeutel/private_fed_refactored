@@ -30,7 +30,7 @@ def merge_model(model1: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(net, loader, criterion) -> tuple[float, float]:
+def evaluate(net, loader, criterion):
     eval_accuracy, total, eval_loss = 0.0, 0.0, 0.0
     device = next(net.parameters()).device
     net.eval()

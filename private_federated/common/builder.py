@@ -112,7 +112,7 @@ def get_server(aggregation_strategy_factory_fn, clients_factory: ClientFactory, 
     return server
 
 
-def get_loaders(dataset_factory: DatasetFactory) -> tuple[DataLoader, DataLoader]:
+def get_loaders(dataset_factory: DatasetFactory):
     loader_params: dict = {"batch_size": DataLoadersGenerator.BATCH_SIZE,
                            "shuffle": False,
                            "pin_memory": True,

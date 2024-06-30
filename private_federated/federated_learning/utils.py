@@ -3,7 +3,7 @@ import logging
 from private_federated.federated_learning.client import Client
 
 
-def evaluate_clients(clients: list[Client]) -> tuple[float, float]:
+def evaluate_clients(clients):
     total_accuracy, total_loss = 0.0, 0.0
     for c in clients:
         acc, loss = c.evaluate()

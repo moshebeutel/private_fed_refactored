@@ -24,24 +24,24 @@ class Server:
     MODEL_SAVE_PATH: Path = Path.home() / 'saved_models/putEMG/model3d'
 
     def __init__(self,
-                 train_clients: list[Client],
-                 val_clients: list[Client],
-                 test_clients: list[Client],
+                 train_clients,
+                 val_clients,
+                 test_clients,
                  net: torch.nn.Module,
                  val_loader: DataLoader,
                  test_loader: DataLoader,
                  aggregating_strategy: Callable[[torch.tensor], torch.tensor]):
-        self._train_clients: list[Client] = train_clients
-        self._val_clients: list[Client] = val_clients
-        self._test_clients: list[Client] = test_clients
+        self._train_clients = train_clients
+        self._val_clients = val_clients
+        self._test_clients = test_clients
         self._net: torch.nn.Module = clone_model(net)
         zero_net_grads(self._net)
         self._grads: {str: torch.tensor} = get_net_grads(self._net)
         self._shapes = [g.shape for g in self._grads.values()]
         self._best_model: torch.nn.Module = clone_model(net)
         self._device = next(net.parameters()).device
-        self._sampled_clients: list[Client] = []
-        self._sampled_clients_history: list[Client] = []
+        self._sampled_clients = []
+        self._sampled_clients_history = []
         self._sample_fn = random.choices if Server.SAMPLE_CLIENTS_WITH_REPLACEMENT else random.sample
         self._optimizer = torch.optim.SGD(self._net.parameters(),
                                           lr=Server.LEARNING_RATE,
@@ -112,7 +112,7 @@ class Server:
         self._sampled_clients_history = list(set(self._sampled_clients_history))
         logging.debug(f'\nsampled clients {str([c.cid for c in self._sampled_clients])}')
 
-    def _preform_train_round(self, clients: list[Client]):
+    def _preform_train_round(self, clients):
         """
         Train round: send sampled clients the current state of the network and launch a local train on each client
         :param clients (list[Client]): list of clients participating in the train round
@@ -135,7 +135,7 @@ class Server:
                        'train_eval_loss': self._last_train_eval_loss,
                        'train_eval_acc': self._last_train_eval_acc})
 
-    def _get_clients_grads(self, clients: list[Client]) -> torch.Tensor:
+    def _get_clients_grads(self, clients) -> torch.Tensor:
         """
         Get gradients generated at last local train of each client in the given clients list\
         :param clients (list[Client]): list of clients requested to hand over their gradients
@@ -235,12 +235,12 @@ class Server:
         if Config.LOG2WANDB:
             wandb.log({'test_acc_with_finetune': acc, 'test_loss_with_finetune': loss})
 
-    def _evaluate_val_clients(self) -> tuple[float, float]:
+    def _evaluate_val_clients(self) :
         for client in self._val_clients:
             client.receive_net_from_server(net=self._net)
         return evaluate_clients(clients=self._val_clients)
 
-    def _evaluate_val_clients_with_finetune(self) -> tuple[float, float]:
+    def _evaluate_val_clients_with_finetune(self):
         # fine tune model for each client
         for client in self._val_clients:
             client.train_single_epoch()
@@ -248,12 +248,12 @@ class Server:
 
         return evaluate_clients(clients=self._val_clients)
 
-    def _evaluate_test_clients(self) -> tuple[float, float]:
+    def _evaluate_test_clients(self):
         for client in self._test_clients:
             client.receive_net_from_server(net=self._net)
         return evaluate_clients(clients=self._test_clients)
 
-    def _evaluate_test_clients_with_finetune(self) -> tuple[float, float]:
+    def _evaluate_test_clients_with_finetune(self):
         # fine tune model for each client
         for client in self._test_clients:
             client.train_single_epoch()
@@ -261,12 +261,12 @@ class Server:
 
         return evaluate_clients(clients=self._test_clients)
 
-    def _evaluate_train_clients_on_their_test_set(self) -> tuple[float, float]:
+    def _evaluate_train_clients_on_their_test_set(self):
         for client in self._sampled_clients_history:
             client.receive_net_from_server(net=self._net)
         return evaluate_clients(clients=self._sampled_clients_history)
 
-    def _evaluate_train_clients_on_their_test_set_with_personalization(self) -> tuple[float, float]:
+    def _evaluate_train_clients_on_their_test_set_with_personalization(self):
         # each client blend server weights with his local
         for client in self._sampled_clients_history:
             client.merge_server_model_with_personal_model(net=self._net)

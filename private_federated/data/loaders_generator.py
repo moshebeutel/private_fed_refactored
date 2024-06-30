@@ -7,7 +7,7 @@ class DataLoadersGenerator:
     PIN_MEMORY = False
     NUM_WORKERS = 0
 
-    def __init__(self, users_datasets: dict[str, dict[str, Dataset]]):
+    def __init__(self, users_datasets):
         loader_params = {"batch_size": DataLoadersGenerator.BATCH_SIZE,
                          "pin_memory": DataLoadersGenerator.PIN_MEMORY,
                          "num_workers": DataLoadersGenerator.NUM_WORKERS}

@@ -15,10 +15,10 @@ class GepServer(Server):
     GRADIENTS_HISTORY_SIZE = 16
 
     def __init__(self,
-                 public_clients: list[Client],
-                 private_clients: list[Client],
-                 val_clients: list[Client],
-                 test_clients: list[Client],
+                 public_clients,
+                 private_clients,
+                 val_clients,
+                 test_clients,
                  net: torch.nn.Module,
                  val_loader: DataLoader,
                  test_loader: DataLoader,

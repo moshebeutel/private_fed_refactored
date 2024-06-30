@@ -26,7 +26,7 @@ def get_bases(pub_grad, num_bases):
     return num_bases, error_rate, pca
 
 
-def flatten_tensor(tensor_list: list[torch.tensor]) -> torch.tensor:
+def flatten_tensor(tensor_list) -> torch.tensor:
     """
     Taken from https://github.com/dayu11/Gradient-Embedding-Perturbation
     """

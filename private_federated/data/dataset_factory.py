@@ -17,7 +17,7 @@ class DatasetFactory:
                       'CIFAR100': transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))}
     CLASSES_PER_USER = 10
 
-    def __init__(self, dataset_name: str, users: list[str]):
+    def __init__(self, dataset_name: str, users):
         assert dataset_name in DatasetFactory.DATASETS_HUB, (f'Expected dataset name one of'
                                                              f' {DatasetFactory.DATASETS_HUB.keys()}.'
                                                              f' Got {dataset_name}')
@@ -87,7 +87,7 @@ class DatasetFactory:
 
 
 class PutEMGDatasetFactory(DatasetFactory):
-    def __init__(self, dataset_name: str, users: list[str]):
+    def __init__(self, dataset_name: str, users):
         dataset_ctor = DatasetFactory.DATASETS_HUB[dataset_name]
         DatasetFactory.CLASSES_PER_USER = 8
         root_path = Path.home() / 'datasets/EMG/putEMG/windowed'
