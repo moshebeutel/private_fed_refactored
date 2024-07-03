@@ -13,10 +13,18 @@ from private_federated.models.model_factory import ModelFactory
 def populate_args(args):
     assert args.model_name in ModelFactory.MODEL_HUB.keys(), (f'Expected one of {ModelFactory.MODEL_HUB.keys()}.'
                                                               f' Got {args.model_name}')
-    Config.MODEL_NAME = args.model_name
 
     DatasetFactory.DATASETS_DIR = args.data_path
-    DataLoadersGenerator.CLASSES_PER_USER = args.classes_per_user
+
+    if args.dataset_name == 'putEMG':
+        args.model_name = 'Model3d'
+        logging.info('Model for putEM: Model3d')
+    else:
+        logging.info(f'Model for {args.dataset_name}: {args.model_name}')
+
+    Config.MODEL_NAME = args.model_name
+
+    DatasetFactory.CLASSES_PER_USER = args.classes_per_user
     DataLoadersGenerator.BATCH_SIZE = args.batch_size
 
     Client.INTERNAL_EPOCHS = args.clients_internal_epochs
@@ -71,7 +79,7 @@ def get_command_line_arguments(parser):
     # Data
     parser.add_argument("--data-path", type=str, default=f"{str(Path.home())}/datasets/",
                         help="dir path for datafolder")
-    parser.add_argument("--dataset-name", type=str, default=f"CIFAR10",
+    parser.add_argument("--dataset-name", type=str, default=f"putEMG",
                         choices=[DatasetFactory.DATASETS_HUB.keys()],
                         help="Name of dataset (CIFAR10, CIFAR100 ...)")
 
@@ -141,7 +149,7 @@ def get_command_line_arguments(parser):
     parser.add_argument("--json-path", type=str, default=f"{str(Path.cwd())}/sweep_parameters.json",
                         help="dir path for datafolder")
 
-    parser.add_argument("--sweep-name", type=str, default="", help="describe the sweep")
+    parser.add_argument("--sweep-name", type=str, default="emg_no_noise", help="describe the sweep")
 
     args = parser.parse_args()
     return args

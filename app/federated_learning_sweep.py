@@ -6,8 +6,10 @@ from pathlib import Path
 import wandb
 import private_federated
 import private_federated.common
+from app.utils import create_run_name
 from private_federated.common import builder
 from private_federated.common import utils
+from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.train.utils import set_seed
 
 
@@ -31,6 +33,7 @@ def sweep_train(sweep_id, args, config=None):
         args.num_clients_agg = config.num_clients_agg
         args.num_clients_private = config.num_private_clients
         args.num_clients_public = config.num_clients_public
+        DatasetFactory.CLASSES_PER_USER = args.num_clients_public
         args.classes_per_user = config.classes_per_user
         args.noise_multiplier = config.noise_multiplier
         args.clip = config.clip
@@ -39,29 +42,11 @@ def sweep_train(sweep_id, args, config=None):
         args.client_learning_rate = config.client_learning_rate
         args.server_learning_rate = config.server_learning_rate
         args.clients_internal_epochs = config.clients_internal_epochs
-
-        run_name = (f'{args.dataset_name},{args.model_name},'
-                    f'Embed Grads: {args.embed_grads},'
-                    f'Noise Mult. {args.noise_multiplier},'
-                    f'Use GP: {args.use_gp},'
-                    f'Num Clients Agg: {args.num_clients_agg},'
-                    f'Clip Value {args.clip},'
-                    f'Client Learning Rate {args.client_learning_rate},'
-                    f'Server Learning Rate {args.server_learning_rate},'
-                    f'Internal Epochs {args.clients_internal_epochs}')
-
         if args.embed_grads:
             args.embedding_num_bases = config.gep_num_bases
             args.grads_history_size = config.grads_history_size
 
-            run_name += (f','
-                         f'Num Basis Elements {args.embedding_num_bases},'
-                         f'Grads History Size {args.grads_history_size},'
-                         f'Num Public Clients {args.num_clients_public}')
-
-        logging.info(run_name)
-        print('\n'.join(run_name.split(',')))
-        wandb.run.name = run_name
+        create_run_name(args)
         single_train(args)
 
 

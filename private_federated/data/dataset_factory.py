@@ -15,7 +15,7 @@ class DatasetFactory:
     DATASETS_DIR = f"{str(Path.home())}/datasets/"
     NORMALIZATIONS = {'CIFAR10': transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                       'CIFAR100': transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))}
-    CLASSES_PER_USER = 10
+    CLASSES_PER_USER = 2
 
     def __init__(self, dataset_name: str, users):
         assert dataset_name in DatasetFactory.DATASETS_HUB, (f'Expected dataset name one of'

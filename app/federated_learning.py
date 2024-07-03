@@ -2,6 +2,7 @@ import argparse
 import logging
 import wandb
 import private_federated
+from app.utils import create_run_name
 from private_federated.common import builder, utils, config
 
 
@@ -13,6 +14,7 @@ def run_single(args):
     federated_learning_server = builder.build_all(args)
     if config.Config.LOG2WANDB:
         wandb.init(project="emg_gp_moshe", entity="emg_diff_priv", name='federated simple')
+    create_run_name(args)
     federated_learning_server.federated_learn()
 
 

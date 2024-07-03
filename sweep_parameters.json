@@ -1,78 +1,69 @@
 {
     "noise_multiplier": {
         "values": [
-            25.0,
-            12.79182,
-            4.72193,
-            2.01643,
             0.0
         ]
     },
     "embed_grads": {
         "values": [
-            false,
-            true
+            false
         ]
     },
     "use_gp": {
         "values": [
-            true
+            false
         ]
     },
     "num_clients_agg": {
         "values": [
-            20
+            5
         ]
     },
     "num_clients_public": {
         "values": [
-            50
-        ]
-    },
-    "grads_history_size": {
-        "values": [
-            80
+            8
         ]
     },
     "gep_num_bases": {
         "values": [
-            80
+            20
         ]
     },
     "clip": {
         "values": [
             1.0,
-            0.001
+            2.0
         ]
     },
     "seed": {
         "values": [
-            70, 80, 90
+            20
         ]
     },
     "num_private_clients": {
         "values": [
-            500
+            22
         ]
     },
     "model_name": {
         "values": [
-            "resnet20"
+            "Model3d"
         ]
     },
     "dataset_name": {
         "values": [
-            "CIFAR10"
+            "putEMG"
         ]
     },
     "classes_per_user": {
         "values": [
-            2
+            8
         ]
     },
     "clients_internal_epochs": {
         "values": [
-            1
+            5,
+            10
         ]
     },
     "client_learning_rate": {
@@ -82,7 +73,8 @@
     },
     "server_learning_rate": {
         "values": [
-            0.001
+            0.1,
+            0.01
         ]
     }
 }

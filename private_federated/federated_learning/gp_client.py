@@ -2,7 +2,7 @@ import logging
 
 import torch.nn
 from torch.utils.data import DataLoader
-from private_federated.data.loaders_generator import DataLoadersGenerator
+from private_federated.data.dataset_factory import DatasetFactory
 from private_federated.federated_learning.client import Client
 from private_federated.models.pFedGP.utils import build_tree
 from private_federated.models.utils import zero_net_grads
@@ -15,7 +15,7 @@ class GPClient(Client):
         from private_federated.models.pFedGP.Learner import pFedGPFullLearner
         super().__init__(cid, train_loader, eval_loader)
 
-        self._gp = pFedGPFullLearner(n_output=DataLoadersGenerator.CLASSES_PER_USER)
+        self._gp = pFedGPFullLearner(n_output=DatasetFactory.CLASSES_PER_USER)
 
     def _train(self, num_epochs: int = Client.INTERNAL_EPOCHS):
         assert self._net is not None, 'Client must receive net must before '

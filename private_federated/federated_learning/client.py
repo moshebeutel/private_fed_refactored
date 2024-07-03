@@ -1,5 +1,6 @@
 import logging
 import torch.nn
+import wandb
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from private_federated.models.utils import get_net_grads, zero_net_grads
@@ -7,10 +8,10 @@ from private_federated.train.utils import evaluate, clone_model, merge_model
 
 
 class Client:
-    INTERNAL_EPOCHS = 50
+    INTERNAL_EPOCHS = 20
     CRITERION = CrossEntropyLoss()
     OPTIMIZER_TYPE = torch.optim.SGD
-    LEARNING_RATE = 1e-3
+    LEARNING_RATE = 1e-4
     OPTIMIZER_PARAMS = {'weight_decay': 1e-3, 'momentum': 0.9}
     PERSONALIZATION_WEIGHT = 0.1
 
