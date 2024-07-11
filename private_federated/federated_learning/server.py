@@ -15,7 +15,7 @@ from private_federated.train.utils import clone_model, merge_model, evaluate
 
 
 class Server:
-    NUM_ROUNDS = 100
+    NUM_ROUNDS = 250
     NUM_CLIENT_AGG: int = 20
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
@@ -197,7 +197,6 @@ class Server:
         grads_model.load_state_dict(self._grads)
         logging.debug(f'\nServer  max param after load grads {max([float(p.norm()) for p in grads_model.parameters()])}')
 
-        self._lr = max(0.1, self._lr - 0.1)
         self._net = merge_model(model1=self._net, model2=grads_model,
                                 weight1=1 - self._lr, weight2=self._lr)
         logging.debug(f'\nServer  max param after merge grads {max([float(p.norm()) for p in self._net.parameters()])}')
@@ -208,11 +207,12 @@ class Server:
         """
 
         self._last_val_acc, val_loss = self._evaluate_train_clients_on_their_test_set()
-        # self._last_val_acc, val_loss = evaluate(net=self._net, loader=self._val_loader, criterion=Client.CRITERION)
+        # acc, loss = evaluate(net=self._net, loader=self._val_loader, criterion=Client.CRITERION)
         logging.debug(f'\nvalidation accuracy: {self._last_val_acc}')
         if Config.LOG2WANDB:
             wandb.log({'val_acc': self._last_val_acc,
-                       'val_loss': val_loss})
+                       'val_loss': val_loss,
+                     })
 
     def _test_net(self):
 

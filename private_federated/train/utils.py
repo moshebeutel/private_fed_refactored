@@ -39,7 +39,7 @@ def evaluate(net, loader, criterion) -> tuple[float, float]:
         for data in loader:
             images, labels = data[0].to(device), data[1].to(device)
             outputs = net(images)
-            labels[labels > 5] -= 2
+
             loss = criterion(outputs, labels).item()
             eval_loss += float(loss)
             _, predicted = torch.max(outputs.data, 1)
