@@ -15,7 +15,7 @@ from private_federated.train.utils import clone_model, merge_model, evaluate
 
 
 class Server:
-    NUM_ROUNDS = 30
+    NUM_ROUNDS = 50
     NUM_CLIENT_AGG: int = 20
     SAMPLE_CLIENTS_WITH_REPLACEMENT: bool = True
     LEARNING_RATE: float = 0.0001
@@ -207,8 +207,9 @@ class Server:
         Evaluate the server model
         """
 
-        self._last_val_acc, val_loss = self._evaluate_train_clients_on_their_test_set()
+        # self._last_val_acc, val_loss = self._evaluate_train_clients_on_their_test_set()
         # self._last_val_acc, val_loss = evaluate(net=self._net, loader=self._val_loader, criterion=Client.CRITERION)
+        self._last_val_acc, val_loss = self._evaluate_val_clients()
         logging.debug(f'\nvalidation accuracy: {self._last_val_acc}')
         if Config.LOG2WANDB:
             wandb.log({'val_acc': self._last_val_acc,

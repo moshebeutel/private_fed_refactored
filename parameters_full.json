@@ -14,24 +14,19 @@
             true
         ]
     },
-    "use_gp": {
-        "values": [
-            false
-        ]
-    },
     "num_clients_agg": {
         "values": [
-            3
+            20
         ]
     },
     "num_clients_public": {
         "values": [
-            8
+            50
         ]
     },
     "gep_num_bases": {
         "values": [
-            20
+            80
         ]
     },
     "clip": {
@@ -47,22 +42,17 @@
     },
     "num_private_clients": {
         "values": [
-            22
+            500
         ]
     },
     "model_name": {
         "values": [
-            "Model3d"
-        ]
-    },
-    "dataset_name": {
-        "values": [
-            "putEMG"
+            "resnet20"
         ]
     },
     "classes_per_user": {
         "values": [
-            8
+            2
         ]
     },
     "clients_internal_epochs": {

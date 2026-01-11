@@ -8,10 +8,10 @@ from torch.utils.data import DataLoader
 
 class ClientFactory:
     NUM_CLIENTS_PUBLIC = 50
-    NUM_CLIENTS_PRIVATE = 500
+    NUM_CLIENTS_PRIVATE = 50
     NUM_CLIENTS_VAL = 50
-    NUM_CLIENTS_TEST = 100
-    NUM_ALL_USERS = 700
+    NUM_CLIENTS_TEST = 50
+    NUM_ALL_USERS = 200
 
     def __init__(self):
         assert ClientFactory.NUM_CLIENTS_PRIVATE >= Server.NUM_CLIENT_AGG, \
